@@ -1,0 +1,106 @@
+/* Base Grid Styling */
+.ag-theme-alpine {
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  color: #1e293b; /* slate-900 */
+  --ag-grid-size: 8px;
+  --ag-row-height: 48px;
+  --ag-header-height: 44px;
+}
+
+/* Header Styling */
+.ag-theme-alpine .ag-header {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ag-theme-alpine .ag-header-cell,
+.ag-theme-alpine .ag-header-group-cell {
+  background-color: #f8fafc !important;
+  color: #1f2937 !important; /* slate-800 */
+  font-weight: 600;
+  font-size: 13.5px;
+  border-right: 1px solid #e2e8f0 !important;
+  text-align: center;
+  padding: 12px;
+}
+
+/* Header Label Centering */
+.ag-theme-alpine .ag-header-cell-label {
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  white-space: normal;
+  padding: 4px;
+}
+
+/* Cell Styling */
+.ag-theme-alpine .ag-cell {
+  font-size: 13.5px;
+  color: #1f2937;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+/* Row Styling */
+.ag-theme-alpine .ag-row {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Zebra Striping */
+.ag-theme-alpine .ag-row:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+/* Row Hover Effect */
+.ag-theme-alpine .ag-row-hover {
+  background-color: #e0f2fe !important; /* sky-100 */
+  cursor: pointer;
+}
+
+/* Remove thick grid borders */
+.ag-theme-alpine .ag-root-wrapper {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollbars - Clean & Minimal */
+.ag-body-horizontal-scroll,
+.ag-body-vertical-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f9fafb; /* slate-300 on gray-50 */
+}
+
+.ag-body-horizontal-scroll::-webkit-scrollbar,
+.ag-body-vertical-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.ag-body-horizontal-scroll::-webkit-scrollbar-thumb,
+.ag-body-vertical-scroll::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* Remove AG Grid default focus outline */
+.ag-theme-alpine .ag-cell:focus,
+.ag-theme-alpine .ag-row:focus {
+  outline: none !important;
+}
+
+/* Optional: Subtle drop shadow on sticky headers */
+.ag-theme-alpine .ag-header-row {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+.ag-center-cols-viewport {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 360px;
+}

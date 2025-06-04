@@ -1,0 +1,157 @@
+Header Cells
+.ag-header-cell {
+  background-color: #727375 !important;
+  color: #1f2937 !important;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0 !important;
+  font-size: 14px;
+}
+
+  /* Apply to AG Grid wrapper (scoped class name if you use modules) */
+.ag-theme-alpine .ag-header {
+  background-color: #1f2937 !important; /* Dark gray */
+  color: #ffffff !important;
+  font-weight: bold;
+}
+
+/* Apply to individual header cells */
+.ag-theme-alpine .ag-header-cell,
+.ag-theme-alpine .ag-header-group-cell {
+  background-color: #1f2937 !important; /* Same as above */
+  color: #ffffff !important;
+  font-weight: 600;
+  text-align: center;
+  border-right: 1px solid #3b3b3b;
+  font-size: 14px;
+}
+
+
+/* Filter Bar */
+.filter-bar {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.filter-bar input,
+.filter-bar select {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 14px;
+  color: #1f2937;
+  min-width: 180px;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-bar input:focus,
+.filter-bar select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+/* Buttons */
+button {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+button.fetch {
+  background-color: #4f46e5;
+  color: white;
+}
+
+button.fetch:hover {
+  background-color: #4338ca;
+}
+
+button.export {
+  background-color: #e2e8f0;
+  color: #1f2937;
+}
+
+button.export:hover {
+  background-color: #cbd5e1;
+}
+
+/* Sidebar Tabs */
+.sidebar {
+  background-color: #1e293b;
+  color: #f8fafc;
+  width: 220px;
+  height: 100vh;
+  padding: 20px;
+}
+
+.sidebar .tab {
+  padding: 12px 20px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar .tab:hover {
+  background-color: #334155;
+  cursor: pointer;
+}
+
+.sidebar .active-tab {
+  background-color: #4f46e5;
+  color: white;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+/* Page Title */
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 24px;
+}
+
+.ag-theme-alpine {
+  position: relative;
+  height: 500px;
+  overflow: auto;
+}
+/* Add to your CSS */
+.ag-theme-alpine .ag-header-viewport {
+  overflow-x: auto !important;
+}
+
+.ag-theme-alpine .ag-header-container {
+  width: auto !important;
+  min-width: 100%;
+}
+
+.groupBySection {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.modalControls {
+  padding-top: 0;
+}
+
+

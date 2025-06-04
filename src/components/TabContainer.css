@@ -1,0 +1,103 @@
+.container {
+  display: flex;
+  height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Sidebar Styling */
+.sidebar {
+  width: 220px;
+  background-color: #0f172a; /* Deep navy */
+  color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  transition: width 0.3s ease;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: 70px;
+}
+
+/* Header & Logo */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid #334155;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  color: #e2e8f0;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-button:hover {
+  background-color: #1e293b;
+}
+
+/* Navigation Links */
+nav {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.tab-button:hover {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+.tab-button.active {
+  background-color: #1e3a8a; /* Deep blue accent */
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+/* Main Content */
+.main-content {
+  flex-grow: 1;
+  padding: 24px;
+  background-color: #f1f5f9;
+  overflow-y: auto;
+}
+
+/* Optional: For inner content styling */
+.tab-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+}

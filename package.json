@@ -1,0 +1,66 @@
+{
+  "name": "sales-report-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@ag-grid-enterprise/master-detail": "^32.3.5",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@heroicons/react": "^2.2.0",
+    "@mui/icons-material": "^7.1.0",
+    "@mui/material": "^7.1.0",
+    "@mui/x-data-grid": "^8.5.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "ag-grid-community": "^33.2.4",
+    "ag-grid-enterprise": "^33.2.4",
+    "ag-grid-react": "^33.2.4",
+    "axios": "^1.9.0",
+    "chart.js": "^4.4.9",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
+    "papaparse": "^5.5.2",
+    "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-chartjs-2": "^5.3.0",
+    "react-datepicker": "^8.3.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^5.5.0",
+    "react-modal": "^3.16.3",
+    "react-scripts": "5.0.1",
+    "react-select": "^5.10.1",
+    "react-select-async-paginate": "^0.7.10",
+    "react-table": "^7.8.0",
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.1.6"
+  }
+}

@@ -1,0 +1,301 @@
+/* Base Grid Styling */
+.ag-theme-alpine {
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  font-size: 12px;
+  color: #1e293b; /* slate-900 */
+  --ag-grid-size: 8px;
+  --ag-row-height: 48px;
+  --ag-header-height: 44px;
+}
+
+/* AG Grid Row Styling */
+.ag-row.ag-full-width-row.ag-row-position-absolute {
+  position: relative !important;
+  z-index: 10 !important;
+  overflow: visible !important;
+}
+
+/* Header Styling */
+.ag-theme-alpine .ag-header {
+  background-color: #f1f5f9 !important; /* cleaner gray */
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ag-theme-alpine .ag-header-cell,
+.ag-theme-alpine .ag-header-group-cell {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-weight: 600;
+  font-size: 11px;
+  border-right: 1px solid #e2e8f0 !important;
+  text-align: center;
+  padding: 12px;
+}
+
+/* Header Label Centering */
+.ag-theme-alpine .ag-header-cell-label {
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  white-space: normal;
+  padding: 4px;
+}
+
+/* Cell Styling */
+.ag-theme-alpine .ag-cell {
+  font-size: 11px;
+  color: #1f2937;
+  font-variant-numeric: tabular-nums; /* for better number alignment */
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+/* Right-align numeric cells for readability */
+.ag-theme-alpine .ag-cell[col-id*="value"],
+.ag-theme-alpine .ag-cell[col-id*="rate"],
+.ag-theme-alpine .ag-cell[col-id*="amount"],
+.ag-theme-alpine .ag-cell[col-id*="price"],
+.ag-theme-alpine .ag-cell[col-id*="stock"],
+.ag-theme-alpine .ag-cell[col-id*="sale"],
+.ag-theme-alpine .ag-cell[col-id*="qty"],
+.ag-theme-alpine .ag-cell[col-id*="count"],
+.ag-theme-alpine .ag-cell[col-id*="percentage"],
+.ag-theme-alpine .ag-cell[col-id*="conversion"],
+.ag-theme-alpine .ag-cell[col-id*="deviation"] {
+  justify-content: flex-end !important;
+  text-align: right;
+}
+
+/* Row Styling */
+.ag-theme-alpine .ag-row {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Zebra Striping */
+.ag-theme-alpine .ag-row:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+/* Row Hover Effect */
+.ag-theme-alpine .ag-row-hover {
+  background-color: #e0ecf9 !important;
+  cursor: pointer;
+}
+
+/* Remove thick grid borders */
+.ag-theme-alpine .ag-root-wrapper {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* Scrollbars - Clean & Minimal */
+.ag-body-horizontal-scroll,
+.ag-body-vertical-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f9fafb;
+}
+
+.ag-body-horizontal-scroll::-webkit-scrollbar,
+.ag-body-vertical-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.ag-body-horizontal-scroll::-webkit-scrollbar-thumb,
+.ag-body-vertical-scroll::-webkit-scrollbar-thumb {
+  background-color: #94a3b8;
+  border-radius: 4px;
+}
+
+/* Remove AG Grid default focus outline */
+.ag-theme-alpine .ag-cell:focus,
+.ag-theme-alpine .ag-row:focus {
+  outline: none !important;
+}
+
+/* Optional: Subtle drop shadow on sticky headers */
+.ag-theme-alpine .ag-header-row {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Override if still needed */
+.ag-theme-alpine .ag-header {
+  background-color: #e2e8f0   !important;
+}
+.ag-theme-alpine .ag-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Input focus */
+input:focus, select:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+/* React-select scrollbar */
+.react-select__menu-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.react-select__menu-list::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 6px;
+}
+
+/* Modal Layout */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-box {
+  background-color: #ffffff;
+  width: 70%;
+  height: 70vh;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', sans-serif;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 26px;
+  font-weight: bold;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  color: #1e293b;
+}
+
+.modal-grid-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background-color: #ffffff;
+  padding: 10px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 10px;
+}
+
+.modal-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.modal-btn.export {
+  background-color: #2563eb;
+  color: white;
+}
+
+.modal-btn.export:hover {
+  background-color: #1e40af;
+}
+
+.modal-btn.close {
+  background-color: #ef4444;
+  color: white;
+}
+
+.modal-btn.close:hover {
+  background-color: #b91c1c;
+}
+
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  background-color: #f1f5f9;
+  font-family: 'Inter', sans-serif;
+}
+.rs__control {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 11px;
+  padding: 0 12px;
+  box-shadow: none;
+}
+
+.rs__control--is-focused {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.rs__value-container {
+  padding: 4px 12px;
+  gap: 6px;
+  align-items: center;
+}
+
+.rs__menu {
+  z-index: 9999;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.rs__option {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151;
+  background-color: white;
+}
+
+.rs__option--is-focused {
+  background-color: #f1f5f9;
+}
+
+.rs__option--is-selected {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.rs__placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+}
