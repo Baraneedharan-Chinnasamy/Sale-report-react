@@ -34,7 +34,59 @@ const ReportControls = ({
   const [endWeekYear, setEndWeekYear] = useState(new Date().getFullYear());
   const [startMonth, setStartMonth] = useState(new Date().getMonth());
   const [endMonth, setEndMonth] = useState(new Date().getMonth());
+  const [availableBusinessCodes, setAvailableBusinessCodes] = useState([]);
   const { exportToGoogleSheet, load, successMessage, error } = useExportToSheet();
+
+  const BUSINESS_CODE_MAP = {
+    "ZNG45F8J27LKMNQ": "zing",
+    "PRT9X2C6YBMLV0F": "prathiksham",
+    "BEE7W5ND34XQZRM": "beelittle",
+    "ADBXOUERJVK038L": "adoreaboo",
+    "Authentication": "task_db"
+  };
+
+  // Load available business codes from localStorage on component mount
+  useEffect(() => {
+    const loadAvailableBusinessCodes = () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const user = JSON.parse(userData);
+          const reportrixPermissions = user.permissions?.reportrix || {};
+          
+          const availableCodes = [];
+          
+          // Check each brand in reportrix permissions
+          Object.keys(reportrixPermissions).forEach(brandName => {
+            if (reportrixPermissions[brandName] === true) {
+              // Find the corresponding business code for this brand
+              const businessCode = Object.keys(BUSINESS_CODE_MAP).find(
+                code => BUSINESS_CODE_MAP[code] === brandName
+              );
+              if (businessCode) {
+                availableCodes.push({
+                  code: businessCode
+                  
+                });
+              }
+            }
+          });
+          
+          setAvailableBusinessCodes(availableCodes);
+          
+          // If no business is selected and there are available codes, select the first one
+          if (!business && availableCodes.length > 0) {
+            setBusiness(availableCodes[0].code);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading business codes from localStorage:', error);
+        setAvailableBusinessCodes([]);
+      }
+    };
+
+    loadAvailableBusinessCodes();
+  }, [business, setBusiness]);
 
   // Local date formatting to avoid timezone issues
   const formatDate = (date) => {
@@ -263,13 +315,19 @@ const ReportControls = ({
           )}
 
           <div style={styles.inputGroup}>
-            <label className={formStyles.label}>Business ID</label>
-            <input
-              type="text"
+            <label className={formStyles.label}>Business</label>
+            <select
               value={business}
               onChange={(e) => setBusiness(e.target.value)}
-              className={formStyles.input}
-            />
+              className={formStyles.select}
+            >
+              <option value="">Select Business</option>
+              {availableBusinessCodes.map((businessItem) => (
+                <option key={businessItem.code} value={businessItem.code}>
+                  {businessItem.code}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -326,7 +384,7 @@ const ReportControls = ({
             </button>
 
             <button
-              onClick={() => exportToGoogleSheet(business, rowData)}
+              onClick={() => exportToGoogleSheet(business,"Daily Sales", rowData)}
               disabled={!rowData || rowData.length === 0 || !business}
               className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
             >

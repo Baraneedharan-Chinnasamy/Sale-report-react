@@ -1,18 +1,38 @@
 import React, { useState } from 'react';
 import SalesReportGrid from './SalesReport/SalesReportGrid';
 import GroupbyAggregationPage from './SalesReport/GroupbyAggregationPage';
+import useLogout from './SalesReport/hooks/useLogout';
 
 import {
   Bars3Icon,
   ChartBarSquareIcon,
-  Squares2X2Icon  
+  Squares2X2Icon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/solid';
 
 const GroupByTab = () => <GroupbyAggregationPage />;
+const user = JSON.parse(localStorage.getItem('user'));
 
-const TabContainer = () => {
+const TabContainer = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('sales');
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const { logout } = useLogout();
+
+  const handleLogout = async () => {
+    try {
+      const result = await logout();
+      
+      if (!result.error) {
+        console.log('Logout successful');
+        // Call the onLogout prop to update App's authentication state
+        onLogout();
+      } else {
+        console.error('Logout error:', result.error);
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -24,46 +44,70 @@ const TabContainer = () => {
             onClick={() => setCollapsed(!collapsed)}
             title="Toggle Sidebar"
           >
-            <Bars3Icon style={{ width: 20, height: 20, color: '#4E4B4B' }} />
+            <Bars3Icon style={{ width: 24, height: 24, color: '#4E4B4B' }} />
           </button>
         </div>
 
-        {!collapsed && (
-          <nav style={styles.nav}>
-            <button
-              style={{
-                ...styles.tabButton,
-                ...(activeTab === 'sales' ? styles.activeTab : {})
-              }}
-              onClick={() => setActiveTab('sales')}
-            >
-              <ChartBarSquareIcon style={styles.icon} />
-              Sales Report
-            </button>
+        <nav style={styles.nav}>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'sales' ? styles.activeTab : {}),
+              ...(collapsed ? styles.collapsedButton : {})
+            }}
+            onClick={() => setActiveTab('sales')}
+            title={collapsed ? "Sales Report" : ""}
+          >
+            <ChartBarSquareIcon style={styles.icon} />
+            {!collapsed && "Sales Report"}
+          </button>
 
-            <button
-              style={{
-                ...styles.tabButton,
-                ...(activeTab === 'group' ? styles.activeTab : {})
-              }}
-              onClick={() => setActiveTab('group')}
-            >
-              <Squares2X2Icon   style={styles.icon} />
-              Automated Group By
-            </button>
-          </nav>
-        )}
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'group' ? styles.activeTab : {}),
+              ...(collapsed ? styles.collapsedButton : {})
+            }}
+            onClick={() => setActiveTab('group')}
+            title={collapsed ? "Automated Group By" : ""}
+          >
+            <Squares2X2Icon style={styles.icon} />
+            {!collapsed && "Automated Group By"}
+          </button>
+        </nav>
+
+        {/* User info and logout section */}
+        <div style={styles.userSection}>
+          {user && !collapsed && (
+            <div style={styles.userInfo}>
+              <span style={styles.userName}>
+                {user.username || user.name || 'User'}
+              </span>
+            </div>
+          )}
+          
+          <button
+            style={{
+              ...styles.logoutButton,
+              ...(collapsed ? styles.collapsedLogoutButton : {})
+            }}
+            onClick={handleLogout}
+            title={collapsed ? "Logout" : "Logout"}
+          >
+            <ArrowRightOnRectangleIcon style={styles.icon} />
+            {!collapsed && "Logout"}
+          </button>
+        </div>
       </aside>
 
       <main style={styles.mainContent}>
-  <div style={{ display: activeTab === 'sales' ? 'block' : 'none', height: '100%' }}>
-    <SalesReportGrid />
-  </div>
-  <div style={{ display: activeTab === 'group' ? 'block' : 'none', height: '100%' }}>
-    <GroupByTab />
-  </div>
-</main>
-
+        <div style={{ display: activeTab === 'sales' ? 'block' : 'none', height: '100%' }}>
+          <SalesReportGrid />
+        </div>
+        <div style={{ display: activeTab === 'group' ? 'block' : 'none', height: '100%' }}>
+          <GroupByTab />
+        </div>
+      </main>
     </div>
   );
 };
@@ -85,7 +129,7 @@ const styles = {
     boxShadow: '2px 0 6px rgba(0, 0, 0, 0.06)'
   },
   sidebarCollapsed: {
-    width: '70px'
+    width: '80px'
   },
   sidebarHeader: {
     display: 'flex',
@@ -112,9 +156,10 @@ const styles = {
   nav: {
     display: 'flex',
     flexDirection: 'column',
-    marginTop: '20px',
-    gap: '12px',
-    padding: '0 20px'
+    marginTop: '5px',
+    gap: '1px',
+    padding: '0 0px',
+    flex: 1
   },
   tabButton: {
     display: 'flex',
@@ -128,8 +173,14 @@ const styles = {
     fontSize: '15px',
     fontWeight: 500,
     cursor: 'pointer',
-    transition: 'background-color 0.2s ease, color 0.2s ease',
+    transition: '#f0eee9',
     textAlign: 'left'
+  },
+  collapsedButton: {
+    justifyContent: 'center',
+    padding: '16px 12px',
+    gap: 0,
+    minHeight: '52px'
   },
   activeTab: {
     backgroundColor: '#DDDAD2', // Subtle warm grey
@@ -137,9 +188,47 @@ const styles = {
     fontWeight: 600
   },
   icon: {
-    width: 20,
-    height: 20,
-    color: '#4E4B4B' // Matching icon color
+    width: 24,
+    height: 24,
+    color: '#4E4B4B', // Matching icon color
+    flexShrink: 0
+  },
+  userSection: {
+    marginTop: 'auto',
+    padding: '20px',
+    borderTop: '1px solid #D1D1CD',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  userInfo: {
+    padding: '8px 0'
+  },
+  userName: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#4E4B4B'
+  },
+  logoutButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 16px',
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderRadius: '8px',
+    color: '#DC2626', // Red color for logout
+    fontSize: '15px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease, color 0.2s ease',
+    textAlign: 'left'
+  },
+  collapsedLogoutButton: {
+    justifyContent: 'center',
+    padding: '16px 12px',
+    gap: 0,
+    minHeight: '52px'
   },
   mainContent: {
     flex: 1,
@@ -148,6 +237,5 @@ const styles = {
     backgroundColor: '#f4f4f2' // Very light grey for content
   }
 };
-
 
 export default TabContainer;

@@ -6,6 +6,63 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 const GroupbyGrid = ({ data = [], onCellClicked = () => {}, sizeColumns = [] ,selectedColumns = [] }) => {
   useEffect(() => {
     const style = document.createElement('style');
+    style.textContent = `
+      .cohesive-grid .ag-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 10 !important;
+        background: white !important;
+        border-bottom: 2px solid #e5e7eb !important;
+      }
+      
+      .cohesive-grid .ag-header-row {
+        background: white !important;
+      }
+      
+      .cohesive-grid .ag-header-cell {
+        background: white !important;
+        border-right: 1px solid #e5e7eb !important;
+      }
+      
+      .numeric-cell {
+        text-align: right !important;
+        font-variant-numeric: tabular-nums !important;
+      }
+      
+      .monetary-value {
+        font-weight: 500 !important;
+        color: #059669 !important;
+      }
+      
+      .ag-tooltip-custom {
+        background: #374151 !important;
+        color: white !important;
+        border-radius: 4px !important;
+        padding: 8px !important;
+        font-size: 12px !important;
+      }
+      
+      .cohesive-grid {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        position: relative !important;
+      }
+      
+      .cohesive-grid .ag-root-wrapper {
+        border: none !important;
+        height: 100% !important;
+      }
+      
+      .cohesive-grid .ag-center-cols-container {
+        overflow-y: auto !important;
+      }
+      
+      .cohesive-grid .ag-body-viewport {
+        overflow-y: auto !important;
+        max-height: calc(100% - 45px) !important;
+      }
+    `;
     document.head.appendChild(style);
     return () => {
       document.head.removeChild(style);
@@ -60,6 +117,8 @@ const GroupbyGrid = ({ data = [], onCellClicked = () => {}, sizeColumns = [] ,se
 
           if (isNumeric || isPercentage) classes.push('numeric-cell');
           if (fieldLower.includes('value') || fieldLower.includes('price')) classes.push('monetary-value');
+          
+          return classes.join(' ');
         }
       };
     });
@@ -77,16 +136,25 @@ const GroupbyGrid = ({ data = [], onCellClicked = () => {}, sizeColumns = [] ,se
   }), []);
 
   return (
-    <div className="ag-theme-alpine cohesive-grid" style={{ width: '100%' }}>
+    <div 
+      className="ag-theme-alpine cohesive-grid" 
+      style={{ 
+        width: '100%', 
+        height: '500px', // Fixed height to force scrolling
+        minHeight: '400px',
+        maxHeight: '70vh',
+        overflow: 'hidden' // Ensure container doesn't expand
+      }}
+    >
       <AgGridReact
         rowData={data}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
-        pagination={true}
-        paginationPageSize={20}
+        pagination={false} // Use virtual scrolling instead
         rowHeight={38} 
+        headerHeight={45}
         onCellClicked={onCellClicked}
-        domLayout="autoHeight"
+        domLayout="normal" // Explicitly set to normal (not autoHeight)
         tooltipShowDelay={200}
         animateRows={true}
         enableRangeSelection={true}
@@ -94,6 +162,10 @@ const GroupbyGrid = ({ data = [], onCellClicked = () => {}, sizeColumns = [] ,se
         rowSelection="multiple"
         suppressCellFocus={true}
         enableCellTextSelection={true}
+        suppressHorizontalScroll={false}
+        suppressScrollOnNewData={true}
+        rowBuffer={10} // For better virtual scrolling performance
+        suppressAnimationFrame={false}
         key={JSON.stringify(columnDefs.map(c => c.field))}
         loadingOverlayComponent={() => (
           <div style={{

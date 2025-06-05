@@ -9,6 +9,14 @@ import formStyles from './styles/formControls.module.css';
 import dragStyles from './styles/ColumnArrangement.module.css';
 import { exportDataToCSV } from './utils/exportUtils'; // adjust path as needed
 
+const BUSINESS_CODE_MAP = {
+  "ZNG45F8J27LKMNQ": "zing",
+  "PRT9X2C6YBMLV0F": "prathiksham", 
+  "BEE7W5ND34XQZRM": "beelittle",
+  "ADBXOUERJVK038L": "adoreaboo",
+  "Authentication": "task_db"
+};
+
 const GroupbyReportControls = ({
   startDate = '',
   setStartDate = () => {},
@@ -34,6 +42,34 @@ const GroupbyReportControls = ({
   const [showArrangement, setShowArrangement] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  // Get business options from localStorage
+  const businessOptions = useMemo(() => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      const reportrixPermissions = userData.permissions?.reportrix || {};
+      
+      const availableBusinesses = Object.entries(BUSINESS_CODE_MAP)
+        .filter(([code, brandName]) => {
+          // Check if user has permission for this brand
+          return reportrixPermissions[brandName] === true;
+        })
+        .map(([code, brandName]) => ({
+          value: code,
+          label: code
+        }));
+      
+      return availableBusinesses;
+    } catch (error) {
+      console.error('Error parsing user data from localStorage:', error);
+      return [];
+    }
+  }, []);
+
+  // Find current business option for Select component
+  const selectedBusinessOption = useMemo(() => {
+    return businessOptions.find(option => option.value === business) || null;
+  }, [business, businessOptions]);
   
   useEffect(() => {
     if (typeof setGroupBy === 'function') {
@@ -190,25 +226,19 @@ const GroupbyReportControls = ({
             />
           </div>
           <div className={formStyles.fieldGroup}>
-            <label className={styles.label}>Business ID</label>
-            <input
-              type="text"
-              value={business}
-              onChange={(e) => setBusiness(e.target.value)}
-              className={formStyles.input}
-              placeholder="Enter Business ID"
-              style={{
-                height: '38px',
-                padding: '8px 12px',
-                border: '1px solid #e1e5e9',
-                borderRadius: '6px',
-                fontSize: '14px',
-                backgroundColor: '#ffffff',
-                transition: 'all 0.2s ease',
-                outline: 'none'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
+            <label className={styles.label}>Business</label>
+            <Select
+              options={businessOptions}
+              value={selectedBusinessOption}
+              onChange={(selected) => setBusiness(selected?.value || '')}
+              classNamePrefix="rs"
+              placeholder="Select Business..."
+              isClearable
+              isSearchable
+              menuPlacement="auto"
+              menuPosition="fixed"
+              styles={customSelectStyles}
+              noOptionsMessage={() => "No businesses available"}
             />
           </div>
         </div>
@@ -338,9 +368,9 @@ const GroupbyReportControls = ({
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                   zIndex: 1000,
                   marginTop: '4px',
-                  maxHeight: '200px',
-                  overflowY: 'auto'
+                  overflowY:'none',
                 }}>
+      
                   <div className={dragStyles.arrangementList} style={{ padding: '8px' }}>
                     {selectedColumns.map((col, index) => (
                       <div
@@ -370,23 +400,17 @@ const GroupbyReportControls = ({
                             : 'none',
                         }}
                       >
-                        <Bars3Icon className={dragStyles.dragIcon} style={{ 
-                          width: '14px', 
-                          height: '14px', 
-                          color: '#9ca3af',
-                          marginRight: '8px',
-                          flexShrink: 0
-                        }} />
-                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{col}</span>
                         <span className={dragStyles.orderNumber} style={{
                           backgroundColor: '#f3f4f6',
                           color: '#6b7280',
-                          padding: '2px 6px',
+                          padding: '2px 0.1px',
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: '500',
                           marginLeft: '8px'
                         }}>{index + 1}</span>
+                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{col}</span>
+                        
                       </div>
                     ))}
                   </div>
@@ -502,21 +526,20 @@ const GroupbyReportControls = ({
             
             <button
               onClick={() => {
-  const visibleData = rowData.map(row =>
-    selectedColumns.reduce((acc, col) => {
-      acc[col] = row[col];
-      return acc;
-    }, {})
-  );
+                  const visibleData = rowData.map(row =>
+                    selectedColumns.reduce((acc, col) => {
+                      acc[col] = row[col];
+                      return acc;
+                    }, {})
+                  );
 
-  const columns = selectedColumns.map(col => ({
-    field: col,
-    headerName: col
-  }));
+                  const columns = selectedColumns.map(col => ({
+                    field: col,
+                    headerName: col
+                  }));
 
-  exportDataToCSV(visibleData, columns, `SalesReport_${business}_${startDate}_to_${endDate}`);
-}}
-
+                  exportDataToCSV(visibleData, columns, `SalesReport_${business}_${startDate}_to_${endDate}`);
+                }}
               disabled={!Array.isArray(rowData) || rowData.length === 0}
               className={`${styles.button} ${(!rowData || rowData.length === 0) ? styles.disabled : ''}`}
               style={{
@@ -559,7 +582,7 @@ const GroupbyReportControls = ({
                       return acc;
                     }, {})
                   );
-                  exportToGoogleSheet(business, visibleData);
+                  exportToGoogleSheet(business, "groupby", visibleData);
                 }}
               disabled={!rowData || rowData.length === 0 || !business}
               className={`${styles.button} ${(!rowData || rowData.length === 0 || !business) ? styles.disabled : ''}`}

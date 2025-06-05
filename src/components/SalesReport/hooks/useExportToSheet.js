@@ -5,7 +5,7 @@ const useExportToSheet = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState(null);
 
-  const exportToGoogleSheet = async (brand, data) => {
+  const exportToGoogleSheet = async (brand, sheet, data) => {
     setLoading(true);
     setSuccessMessage('');
     setError(null);
@@ -18,6 +18,7 @@ const useExportToSheet = () => {
         },
         body: JSON.stringify({
           brand,
+          sheet,
           data,
         }),
       });
