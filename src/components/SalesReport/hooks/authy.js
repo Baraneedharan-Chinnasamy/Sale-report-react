@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const useLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -16,7 +18,7 @@ const useLogin = () => {
     try {
       // Step 1: Login
       const loginResponse = await axios.post(
-        'http://localhost:8000/api/login?business=Authentication',
+        `${API_URL}/api/login?business=Authentication`,
         formData,
         {
           headers: {
@@ -28,7 +30,7 @@ const useLogin = () => {
 
       // Step 2: Fetch user info
       const userResponse = await axios.get(
-        'http://localhost:8000/api/users?business=Authentication',
+        `${API_URL}/api/users?business=Authentication`,
         {
           withCredentials: true,
         }

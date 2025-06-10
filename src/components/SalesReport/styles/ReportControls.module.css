@@ -152,12 +152,15 @@
   background-color: #eff6ff;
   color: #1e40af;
   border: 1px solid #dbeafe;
+  padding: 0px;
 }
 
 .groupByMultiValue {
   background-color: #ecfdf5;
   color: #065f46;
   border: 1px solid #d1fae5;
+  padding: 1px;
+
 }
 
 .multiValueText {

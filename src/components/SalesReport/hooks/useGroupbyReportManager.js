@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import useFilterManagement from './useFilterManagement';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const useGroupbyReportManager = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -73,7 +75,8 @@ const useGroupbyReportManager = () => {
 
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:8000/api/groupby/aggregation', { params });
+      const res = await axios.get(`${API_URL}/api/groupby/aggregation`, { params ,
+         withCredentials: true });
       const data = res.data?.data || [];
       setRowData(data);
     } catch (err) {
@@ -87,8 +90,8 @@ const useGroupbyReportManager = () => {
   const fetchAvailableColumns = useCallback(async () => {
     if (!business) return;
     try {
-      const res = await axios.post('http://localhost:8000/api/get_column_names', null, {
-        params: { business },
+      const res = await axios.post(`${API_URL}/api/get_column_names`, null, {
+        params: { business } ,withCredentials: true, 
       });
       setAvailableColumns(res?.data?.columns || []);
     } catch (err) {

@@ -2,6 +2,8 @@
 import { useCallback } from 'react';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const useFetchData = ({
   aggregation,
   startDate,
@@ -63,8 +65,8 @@ const useFetchData = ({
         });
       }
 
-      const response = await axios.get('http://localhost:8000/api/daily-report', {
-        params: requestParams,
+      const response = await axios.get(`${API_URL}/api/daily-report`, {
+        params: requestParams, withCredentials: true, 
       });
 
       const { details: report, summary, comparison_details } = response.data?.data ?? {};

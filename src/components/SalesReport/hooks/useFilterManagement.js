@@ -2,6 +2,8 @@
 import { useCallback, useState } from 'react';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const useFilterManagement = (business) => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [availableFields, setAvailableFields] = useState([]);
@@ -11,8 +13,8 @@ const useFilterManagement = (business) => {
 
   const fetchAvailableFields = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/filter/available-fields', {
-        params: { business },
+      const response = await axios.get(`${API_URL}/api/filter/available-fields`, {
+        params: { business }, withCredentials: true, 
       });
       if (response.data?.fields) {
         setAvailableFields(response.data.fields);
@@ -30,15 +32,17 @@ const useFilterManagement = (business) => {
       try {
         const offset = (page - 1) * limit;
 
-        const response = await axios.get('http://localhost:8000/api/filter/field-values', {
-          params: {
-            field_name: fieldName,
-            business,
-            search: searchTerm,
-            offset,
-            limit
-          }
-        });
+       const response = await axios.get(`${API_URL}/api/filter/field-values`, {
+        params: {
+          field_name: fieldName,
+          business,
+          search: searchTerm,
+          offset,
+          limit
+        },
+        withCredentials: true 
+      });
+
 
         const values = response?.data?.values || [];
         const hasMore = response?.data?.has_more ?? false;

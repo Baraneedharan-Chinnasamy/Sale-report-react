@@ -35,6 +35,7 @@ const ReportControls = ({
   const [startMonth, setStartMonth] = useState(new Date().getMonth());
   const [endMonth, setEndMonth] = useState(new Date().getMonth());
   const [availableBusinessCodes, setAvailableBusinessCodes] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { exportToGoogleSheet, load, successMessage, error } = useExportToSheet();
 
   const BUSINESS_CODE_MAP = {
@@ -54,6 +55,9 @@ const ReportControls = ({
           const user = JSON.parse(userData);
           const reportrixPermissions = user.permissions?.reportrix || {};
           
+          // Check if user is admin
+          setIsAdmin(user.permissions?.admin === true);
+          
           const availableCodes = [];
           
           // Check each brand in reportrix permissions
@@ -65,7 +69,8 @@ const ReportControls = ({
               );
               if (businessCode) {
                 availableCodes.push({
-                  code: businessCode
+                  code: businessCode,
+                  brandName: brandName
                   
                 });
               }
@@ -82,6 +87,7 @@ const ReportControls = ({
       } catch (error) {
         console.error('Error loading business codes from localStorage:', error);
         setAvailableBusinessCodes([]);
+        setIsAdmin(false);
       }
     };
 
@@ -321,10 +327,9 @@ const ReportControls = ({
               onChange={(e) => setBusiness(e.target.value)}
               className={formStyles.select}
             >
-              <option value="">Select Business</option>
               {availableBusinessCodes.map((businessItem) => (
                 <option key={businessItem.code} value={businessItem.code}>
-                  {businessItem.code}
+                  {businessItem.brandName}
                 </option>
               ))}
             </select>
@@ -346,13 +351,16 @@ const ReportControls = ({
               {filterCount > 0 && <span className={buttonStyles.badge}>{filterCount}</span>}
             </button>
 
-            <button
-              onClick={() => setTargetModalOpen(true)}
-              disabled={!business}
-              className={`${buttonStyles.button} ${(!business) ? buttonStyles.disabled : ''}`}
-            >
-              🎯 Manage Targets
-            </button>
+            {/* Only show Manage Targets button for admin users */}
+            {isAdmin && (
+              <button
+                onClick={() => setTargetModalOpen(true)}
+                disabled={!business}
+                className={`${buttonStyles.button} ${(!business) ? buttonStyles.disabled : ''}`}
+              >
+                🎯 Manage Targets
+              </button>
+            )}
           </div>
 
           <div style={styles.rightButtons}>

@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const useDetailFetcher = ({ business, aggregation, getFilterParams,startDate, endDate}) => {
   const [modalRowData, setModalRowData] = useState([]);
   const [modalColumnDefs, setModalColumnDefs] = useState([]);
@@ -38,7 +40,7 @@ const useDetailFetcher = ({ business, aggregation, getFilterParams,startDate, en
       // Remove the override and use the actual selectedGroup parameter
       const groupByField = selectedGroup;
 
-      const response = await axios.get('http://localhost:8000/api/detiles', {
+      const response = await axios.get(`${API_URL}/api/detiles`, {
         params: {
           Start_Date: startDate,
           End_Date: endDate,
@@ -47,7 +49,7 @@ const useDetailFetcher = ({ business, aggregation, getFilterParams,startDate, en
           col: 'total',
           group_by: groupByField,
           item_filter: filterParams,
-        },
+        }, withCredentials: true, 
       });
 
       const data = response.data.data;
@@ -111,7 +113,7 @@ const useDetailFetcher = ({ business, aggregation, getFilterParams,startDate, en
     try {
       const filterParams = getFilterParams();
       
-      const response = await axios.get('http://localhost:8000/api/detiles', {
+      const response = await axios.get(`${API_URL}/api/detiles`, {
         params: {
           Start_Date: startDate,
           End_Date: endDate,
@@ -121,7 +123,7 @@ const useDetailFetcher = ({ business, aggregation, getFilterParams,startDate, en
           group_by: currentGroupByField,
           item_filter: filterParams,
           full_data: true // Add a flag to indicate this is a full data request
-        },
+        }, withCredentials: true, 
       });
 
       const data = response.data.data;

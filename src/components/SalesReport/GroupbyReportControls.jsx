@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Select from 'react-select';
 import {FunnelIcon,ArrowDownTrayIcon,MagnifyingGlassIcon,XMarkIcon,Bars3Icon,
 } from '@heroicons/react/24/outline';
 import useColumnOptions from './hooks/useColumnOptions';
 import useExportToSheet from './hooks/useExportToSheet';
-import styles from './styles/ReportControls.module.css';
+import buttonStyles from './styles/ReportControls.module.css';
 import formStyles from './styles/formControls.module.css'; 
 import dragStyles from './styles/ColumnArrangement.module.css';
-import { exportDataToCSV } from './utils/exportUtils'; // adjust path as needed
+import { exportDataToCSV } from './utils/exportUtils';
 
 const BUSINESS_CODE_MAP = {
   "ZNG45F8J27LKMNQ": "zing",
@@ -43,6 +43,9 @@ const GroupbyReportControls = ({
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
+  // Add ref for click outside detection
+  const arrangementRef = useRef(null);
+
   // Get business options from localStorage
   const businessOptions = useMemo(() => {
     try {
@@ -51,13 +54,13 @@ const GroupbyReportControls = ({
       
       const availableBusinesses = Object.entries(BUSINESS_CODE_MAP)
         .filter(([code, brandName]) => {
-          // Check if user has permission for this brand
           return reportrixPermissions[brandName] === true;
         })
         .map(([code, brandName]) => ({
           value: code,
-          label: code
+          label: brandName  // friendlier display name
         }));
+
       
       return availableBusinesses;
     } catch (error) {
@@ -70,6 +73,22 @@ const GroupbyReportControls = ({
   const selectedBusinessOption = useMemo(() => {
     return businessOptions.find(option => option.value === business) || null;
   }, [business, businessOptions]);
+
+  // Add click outside effect
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (arrangementRef.current && !arrangementRef.current.contains(event.target)) {
+        setShowArrangement(false);
+      }
+    };
+
+    if (showArrangement) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showArrangement]);
   
   useEffect(() => {
     if (typeof setGroupBy === 'function') {
@@ -92,6 +111,31 @@ const GroupbyReportControls = ({
       ? groupBy.map((col) => ({ value: col, label: col }))
       : [];
   }, [groupBy]);
+
+  // Sort options to show selected ones first
+  const sortedColumnOptions = useMemo(() => {
+    if (!columnOptions) return [];
+    
+    const selected = columnOptions.filter(option => 
+      selectedColumns.includes(option.value)
+    );
+    const unselected = columnOptions.filter(option => 
+      !selectedColumns.includes(option.value)
+    );
+    
+    return [...selected, ...unselected];
+  }, [columnOptions, selectedColumns]);
+
+  const sortedGroupByOptions = useMemo(() => {
+    const selected = selectedColumnsOptions.filter(option => 
+      groupBy.includes(option.value)
+    );
+    const unselected = selectedColumnsOptions.filter(option => 
+      !groupBy.includes(option.value)
+    );
+    
+    return [...selected, ...unselected];
+  }, [selectedColumnsOptions, groupBy]);
 
   // Handle drag and drop for column arrangement
   const handleDragStart = (e, index) => {
@@ -144,18 +188,18 @@ const GroupbyReportControls = ({
     
     if (currentIndex === 0 && allValues.length > 1) {
       return (
-        <div className={isGroupBy ? styles.groupByMultiValue : styles.multiValue}>
-          <span className={styles.multiValueText}>{data.label}</span>
-          <span className={styles.badge}>+{allValues.length - 1}</span>
+        <div className={isGroupBy ? buttonStyles.groupByMultiValue : buttonStyles.multiValue}>
+          <span className={buttonStyles.multiValueText}>{data.label}</span>
+          <span className={buttonStyles.badge}>+{allValues.length - 1}</span>
         </div>
       );
     } else if (currentIndex === 0) {
       return (
-        <div className={isGroupBy ? styles.groupByMultiValue : styles.multiValue}>
-          <span className={styles.multiValueText}>{data.label}</span>
+        <div className={isGroupBy ? buttonStyles.groupByMultiValue : buttonStyles.multiValue}>
+          <span className={buttonStyles.multiValueText}>{data.label}</span>
           <button
             {...removeProps}
-            className={styles.button}
+            className={buttonStyles.button}
             style={{ 
               padding: '2px 4px', 
               height: 'auto', 
@@ -169,7 +213,7 @@ const GroupbyReportControls = ({
               removeProps.onClick(e);
             }}
           >
-            <XMarkIcon className={styles.icon} />
+
           </button>
         </div>
       );
@@ -179,97 +223,63 @@ const GroupbyReportControls = ({
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.formContainer}>
-        {/* First Row - Date Inputs and Business ID */}
-        <div className={`${formStyles.row} ${formStyles.firstRow}`}>
-          <div className={formStyles.fieldGroup}>
-            <label className={styles.label}>Start Date</label>
+    <div className={formStyles.container}>
+      <div className={formStyles.formContainer}>
+        {/* Single Row Layout */}
+        <div style={styles.inputRow}>
+          <div style={styles.inputGroup}>
+            <label className={formStyles.label}>Start Date</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className={formStyles.input}
-              style={{
-                height: '38px',
-                padding: '8px 12px',
-                border: '1px solid #e1e5e9',
-                borderRadius: '6px',
-                fontSize: '14px',
-                backgroundColor: '#ffffff',
-                transition: 'all 0.2s ease',
-                outline: 'none'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
             />
           </div>
-          <div className={formStyles.fieldGroup}>
-            <label className={styles.label}>End Date</label>
+
+          <div style={styles.inputGroup}>
+            <label className={formStyles.label}>End Date</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               className={formStyles.input}
-              style={{
-                height: '38px',
-                padding: '8px 12px',
-                border: '1px solid #e1e5e9',
-                borderRadius: '6px',
-                fontSize: '14px',
-                backgroundColor: '#ffffff',
-                transition: 'all 0.2s ease',
-                outline: 'none'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
             />
           </div>
-          <div className={formStyles.fieldGroup}>
-            <label className={styles.label}>Business</label>
-            <Select
-              options={businessOptions}
-              value={selectedBusinessOption}
-              onChange={(selected) => setBusiness(selected?.value || '')}
-              classNamePrefix="rs"
-              placeholder="Select Business..."
-              isClearable
-              isSearchable
-              menuPlacement="auto"
-              menuPosition="fixed"
-              styles={customSelectStyles}
-              noOptionsMessage={() => "No businesses available"}
-            />
-          </div>
-        </div>
 
-        {/* Second Row - Column Selection, Group By, and Column Order */}
-        <div className={`${formStyles.row} ${formStyles.secondRow}`}>
-          <div className={formStyles.fieldGroup} style={{ flex: '1' }}>
-            <div className={styles.labelWithBadge}>
-              <label className={styles.label}>Select Columns</label>
+          <div style={styles.inputGroup}>
+            <label className={formStyles.label}>Business</label>
+            <select
+          value={business}
+          onChange={(e) => setBusiness(e.target.value)}
+          className={formStyles.select}
+        >
+          <option value="">Select Business</option>
+          {businessOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+          </div>
+
+          <div style={{ ...styles.inputGroup, flex: 2 }}>
+            <div style={styles.labelWithBadge}>
+              <label className={formStyles.label}>Select Columns</label>
               {selectedColumns.length > 0 && (
-                <span className={styles.labelCount} style={{
-                  backgroundColor: '#eff6ff',
-                  color: '#2563eb',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}>{selectedColumns.length}</span>
+                <span className={buttonStyles.badge}>{selectedColumns.length}</span>
               )}
             </div>
             <Select
               isMulti
-              options={columnOptions}
+              options={sortedColumnOptions}
               value={selectedColumnsOptions}
               onChange={(selected) =>
                 setSelectedColumns(selected?.map((opt) => opt.value) || [])
               }
-              classNamePrefix="rs"
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
-              placeholder="Choose columns..."
+             
               components={{ MultiValue: CustomMultiValue }}
               menuPlacement="auto"
               menuPosition="fixed"
@@ -278,35 +288,23 @@ const GroupbyReportControls = ({
             />
           </div>
 
-          <div className={formStyles.fieldGroup} style={{ flex: '1' }}>
-            <div className={styles.labelWithBadge}>
-              <label className={styles.label}>Group By Fields</label>
+          <div style={{ ...styles.inputGroup, flex: 2 }}>
+            <div style={styles.labelWithBadge}>
+              <label className={formStyles.label}>Group By Fields</label>
               {groupBy.length > 0 && (
-                <span className={styles.groupByCount} style={{
-                  backgroundColor: '#f0fdf4',
-                  color: '#16a34a',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}>{groupBy.length}</span>
+                <span className={buttonStyles.badge}>{groupBy.length}</span>
               )}
             </div>
             <Select
               isMulti
-              options={selectedColumnsOptions}
+              options={sortedGroupByOptions}
               value={selectedGroupByOptions}
               onChange={(selected) =>
                 setGroupBy(selected?.map((opt) => opt.value) || [])
               }
-              classNamePrefix="rs"
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
-              placeholder={
-                selectedColumns.length === 0
-                  ? 'Select columns first...'
-                  : 'Choose grouping fields...'
-              }
+              
               isDisabled={selectedColumns.length === 0}
               components={{ MultiValue: CustomMultiValue }}
               menuPlacement="auto"
@@ -316,62 +314,20 @@ const GroupbyReportControls = ({
             />
           </div>
 
-          <div className={formStyles.fieldGroup} style={{ flex: '0 0 auto', minWidth: '180px' }}>
-            <label className={styles.label}>Column Order</label>
-            <div className={dragStyles.arrangementContainer} style={{ position: 'relative' }}>
+          <div style={styles.inputGroup}>
+            <label className={formStyles.label}>Column Order</label>
+            <div style={{ position: 'relative' }} ref={arrangementRef}>
               <button
                 onClick={() => setShowArrangement(!showArrangement)}
-                className={`${styles.button} ${selectedColumns.length === 0 ? styles.disabled : ''}`}
-                style={{ 
-                  height: '38px',
-                  width: '100%',
-                  justifyContent: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: selectedColumns.length === 0 ? '#f9fafb' : '#ffffff',
-                  border: '1px solid #e1e5e9',
-                  borderRadius: '6px',
-                  color: selectedColumns.length === 0 ? '#9ca3af' : '#374151',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: selectedColumns.length === 0 ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                disabled={selectedColumns.length === 0}
-                onMouseEnter={(e) => {
-                  if (selectedColumns.length > 0) {
-                    e.target.style.backgroundColor = '#f8fafc';
-                    e.target.style.borderColor = '#3b82f6';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedColumns.length > 0) {
-                    e.target.style.backgroundColor = '#ffffff';
-                    e.target.style.borderColor = '#e1e5e9';
-                  }
-                }}
+                className={`${buttonStyles.button} ${selectedColumns.length === 0 ? buttonStyles.disabled : ''}`}
               >
-                <Bars3Icon className={styles.icon} style={{ width: '16px', height: '16px' }} />
+                <Bars3Icon className={buttonStyles.icon} />
                 Arrange ({selectedColumns.length})
               </button>
 
               {showArrangement && selectedColumns.length > 0 && (
-                <div className={dragStyles.arrangementDropdown} style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: '0',
-                  right: '0',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e1e5e9',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  zIndex: 1000,
-                  marginTop: '4px',
-                  overflowY:'none',
-                }}>
-      
-                  <div className={dragStyles.arrangementList} style={{ padding: '8px' }}>
+                <div className={dragStyles.arrangementDropdown}>
+                  <div className={dragStyles.arrangementList}>
                     {selectedColumns.map((col, index) => (
                       <div
                         key={col}
@@ -381,7 +337,6 @@ const GroupbyReportControls = ({
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, index)}
                         onDragEnd={handleDragEnd}
-                        className={dragStyles.arrangementItem}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -400,17 +355,8 @@ const GroupbyReportControls = ({
                             : 'none',
                         }}
                       >
-                        <span className={dragStyles.orderNumber} style={{
-                          backgroundColor: '#f3f4f6',
-                          color: '#6b7280',
-                          padding: '2px 0.1px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: '500',
-                          marginLeft: '8px'
-                        }}>{index + 1}</span>
+                        <span className={dragStyles.orderNumber}>{index + 1}</span>
                         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{col}</span>
-                        
                       </div>
                     ))}
                   </div>
@@ -421,104 +367,38 @@ const GroupbyReportControls = ({
         </div>
 
         {/* Action Row */}
-        <div className={styles.actionRow} style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingTop: '20px',
-          borderTop: '1px solid #f1f5f9',
-          marginTop: '20px'
-        }}>
-          <button
-            onClick={() => setFilterOpen(!filterOpen)}
-            className={styles.advancedButton}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 16px',
-              backgroundColor: filterOpen ? '#374151' : '#ffffff',
-              color: filterOpen ? '#ffffff' : '#374151',
-              border: '1px solid #e1e5e9',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (!filterOpen) {
-                e.target.style.backgroundColor = '#f8fafc';
-                e.target.style.borderColor = '#3b82f6';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!filterOpen) {
-                e.target.style.backgroundColor = '#ffffff';
-                e.target.style.borderColor = '#e1e5e9';
-              }
-            }}
-          >
-            <FunnelIcon className={styles.icon} style={{ width: '16px', height: '16px' }} />
-            Advanced Filters
-            {filterCount > 0 && (
-              <span className={styles.badge} style={{
-                backgroundColor: filterOpen ? '#ffffff' : '#dc2626',
-                color: filterOpen ? '#374151' : '#ffffff',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                fontSize: '11px',
-                fontWeight: '600',
-                marginLeft: '4px'
-              }}>{filterCount}</span>
-            )}
-          </button>
+        <div style={styles.buttonRow}>
+          <div style={styles.leftButtons}>
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              className={buttonStyles.advancedButton}
+              style={{
+                backgroundColor: filterOpen ? '#374151' : '#ffffff',
+                color: filterOpen ? '#ffffff' : '#374151',
+              }}
+            >
+              <FunnelIcon className={buttonStyles.icon} />
+              Advanced Filters
+              {filterCount > 0 && (
+                <span className={buttonStyles.badge}>{filterCount}</span>
+              )}
+            </button>
+          </div>
           
-          <div className={styles.rightActions} style={{ display: 'flex', gap: '12px' }}>
+          <div style={styles.rightButtons}>
             <button
               onClick={fetchData}
-              className={`${styles.button} ${styles.primary} ${loading ? styles.disabled : ''}`}
+              className={`${buttonStyles.button} ${buttonStyles.primary} ${loading ? buttonStyles.disabled : ''}`}
               disabled={loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.target.style.backgroundColor = '#2563eb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) {
-                  e.target.style.backgroundColor = '#3b82f6';
-                }
-              }}
             >
               {loading ? (
                 <>
-                  <span className={styles.spinner} style={{
-                    width: '14px',
-                    height: '14px',
-                    border: '2px solid #ffffff',
-                    borderTop: '2px solid transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  <span>Loading...</span>
+                  <span className={buttonStyles.spinner} />
+                  <span style={{ marginLeft: '6px' }}>Loading...</span>
                 </>
               ) : (
                 <>
-                  <MagnifyingGlassIcon className={styles.icon} style={{ width: '16px', height: '16px' }} />
+                  <MagnifyingGlassIcon className={buttonStyles.icon} />
                   Fetch Data
                 </>
               )}
@@ -541,36 +421,9 @@ const GroupbyReportControls = ({
                   exportDataToCSV(visibleData, columns, `SalesReport_${business}_${startDate}_to_${endDate}`);
                 }}
               disabled={!Array.isArray(rowData) || rowData.length === 0}
-              className={`${styles.button} ${(!rowData || rowData.length === 0) ? styles.disabled : ''}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                backgroundColor: (!rowData || rowData.length === 0) ? '#f9fafb' : '#ffffff',
-                color: (!rowData || rowData.length === 0) ? '#9ca3af' : '#374151',
-                border: '1px solid #e1e5e9',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: (!rowData || rowData.length === 0) ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (rowData && rowData.length > 0) {
-                  e.target.style.backgroundColor = '#f8fafc';
-                  e.target.style.borderColor = '#3b82f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (rowData && rowData.length > 0) {
-                  e.target.style.backgroundColor = '#ffffff';
-                  e.target.style.borderColor = '#e1e5e9';
-                }
-                
-              }}
+              className={`${buttonStyles.button} ${(!rowData || rowData.length === 0) ? buttonStyles.disabled : ''}`}
             >
-              <ArrowDownTrayIcon className={styles.icon} style={{ width: '16px', height: '16px' }} />
+              <ArrowDownTrayIcon className={buttonStyles.icon} />
               Export CSV
             </button>
 
@@ -585,33 +438,7 @@ const GroupbyReportControls = ({
                   exportToGoogleSheet(business, "groupby", visibleData);
                 }}
               disabled={!rowData || rowData.length === 0 || !business}
-              className={`${styles.button} ${(!rowData || rowData.length === 0 || !business) ? styles.disabled : ''}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                backgroundColor: (!rowData || rowData.length === 0 || !business) ? '#f9fafb' : '#ffffff',
-                color: (!rowData || rowData.length === 0 || !business) ? '#9ca3af' : '#374151',
-                border: '1px solid #e1e5e9',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: (!rowData || rowData.length === 0 || !business) ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (rowData && rowData.length > 0 && business) {
-                  e.target.style.backgroundColor = '#f8fafc';
-                  e.target.style.borderColor = '#3b82f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (rowData && rowData.length > 0 && business) {
-                  e.target.style.backgroundColor = '#ffffff';
-                  e.target.style.borderColor = '#e1e5e9';
-                }
-              }}
+              className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
             >
               📤 Export to Google Sheet
             </button>
@@ -622,18 +449,59 @@ const GroupbyReportControls = ({
   );
 };
 
+// Minimal inline styles for layout - using same pattern as ReportControls
+const styles = {
+  inputRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+    marginBottom: '10px',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: '160px',
+    flex: 1,
+  },
+  labelWithBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  buttonRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '12px',
+    paddingTop: '16px',
+    borderTop: '1px solid #e5e7eb',
+  },
+  leftButtons: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  rightButtons: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+    marginLeft: 'auto',
+  },
+};
+
 const customSelectStyles = {
   control: (base, state) => ({
     ...base,
-    height: '38px',
-    minHeight: '38px',
+    height: '30px',
+    minHeight: '30px',
     fontSize: '14px',
     borderRadius: '6px',
     borderColor: state.isFocused ? '#3b82f6' : '#e1e5e9',
-    border: '1px solid #e1e5e9',
+    border: '1px solid #cbd5e1',
     borderWidth: '1px',
     backgroundColor: '#ffffff',
-    boxShadow: state.isFocused ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : 'none',
+    boxShadow: '0 1px 1px rgba(0, 0, 0, 0.04)',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     '&:hover': {
@@ -647,17 +515,45 @@ const customSelectStyles = {
   
   dropdownIndicator: (base, state) => ({
     ...base,
-    padding: '8px',
-    color: state.isFocused ? '#3b82f6' : '#9ca3af',
-    transition: 'color 0.15s ease',
+    padding: '0 8px',
+    color: state.isFocused ? '#3b82f6' : '#6b7280',
+    transition: 'all 0.2s ease',
+    transform: state.selectProps.menuIsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+    position: 'absolute',
+    right: '0',
+    top: '50%',
+    transformOrigin: 'center',
+    marginTop: '-8px',
     '&:hover': {
       color: '#3b82f6',
     },
+    svg: {
+      width: '16px',
+      height: '16px',
+    }
+  }),
+
+  clearIndicator: (base, state) => ({
+    ...base,
+    padding: '0 4px',
+    color: '#6b7280',
+    position: 'absolute',
+    right: '24px',
+    top: '50%',
+    marginTop: '-8px',
+    cursor: 'pointer',
+    '&:hover': {
+      color: '#ef4444',
+    },
+    svg: {
+      width: '16px',
+      height: '16px',
+    }
   }),
 
   valueContainer: (base) => ({
     ...base,
-    padding: '4px 12px',
+    padding: '4px 40px 4px 12px', // Add right padding for indicators
     flexWrap: 'wrap',
     gap: '4px',
     overflow: 'hidden',
@@ -678,8 +574,16 @@ const customSelectStyles = {
     border: '1px solid #e1e5e9',
     overflow: 'hidden',
     marginTop: '4px',
+    position: 'absolute',
+    width: '100%',
   }),
   
+  menuPortal: base => ({ 
+    ...base, 
+    zIndex: 9999,
+    position: 'fixed',
+  }),
+
   option: (base, state) => ({
     ...base,
     backgroundColor: state.isSelected
@@ -692,12 +596,11 @@ const customSelectStyles = {
     fontSize: '14px',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
+    borderLeft: state.isSelected ? '3px solid #1d4ed8' : '3px solid transparent',
     '&:hover': {
       backgroundColor: state.isSelected ? '#2563eb' : '#f1f5f9',
     },
   }),
-  
-  menuPortal: base => ({ ...base, zIndex: 9999 }),
 };
 
 export default GroupbyReportControls;

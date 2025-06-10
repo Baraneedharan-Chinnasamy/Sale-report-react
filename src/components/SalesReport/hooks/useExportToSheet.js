@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const useExportToSheet = () => {
   const [load, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -11,17 +13,19 @@ const useExportToSheet = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/export-to-sheet', {
+      const response = await fetch(`${API_URL}/api/export-to-sheet`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',  // ✅ correct way to send cookies
         body: JSON.stringify({
           brand,
           sheet,
           data,
         }),
       });
+
 
       const result = await response.json();
 
