@@ -183,6 +183,25 @@ const SalesReportGrid = () => {
     await fetchDetailsData(currentRowDate.startDate, currentRowDate.endDate, selectedGroup);
   };
 
+  // Flush filter state and options when business changes
+  useEffect(() => {
+    setRowData([]);
+    // Reset filterConfig, availableFields, and filterValues for AdvancedFilters
+    if (filterOpen) {
+      setFilterOpen(false);
+      setTimeout(() => setFilterOpen(true), 0);
+    }
+    if (Array.isArray(filterConfig) && filterConfig.length > 0) {
+      filterConfig.splice(0, filterConfig.length);
+    }
+    if (availableFields && availableFields.length > 0) {
+      availableFields.splice(0, availableFields.length);
+    }
+    if (filterValues && Object.keys(filterValues).length > 0) {
+      Object.keys(filterValues).forEach(key => delete filterValues[key]);
+    }
+  }, [business]);
+
   return (
     <div className={styles.wrapper}>
       <h1 className={styles.title}>Sales Report</h1>
@@ -324,4 +343,4 @@ const formatSizeDetails = (rawData, titleLabel) => {
 };
 
 
-export default SalesReportGrid; 
+export default SalesReportGrid;

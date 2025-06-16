@@ -75,7 +75,7 @@ const useGroupbyReportManager = () => {
 
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/api/groupby/aggregation`, { params ,
+      const res = await axios.get(`${API_URL}/api/groupby-summary`, { params ,
          withCredentials: true });
       const data = res.data?.data || [];
       setRowData(data);
@@ -86,27 +86,7 @@ const useGroupbyReportManager = () => {
       setLoading(false);
     }
   }, [business, startDate, endDate, groupbyFields, selectedFields, getFilterParams]);
-
-  const fetchAvailableColumns = useCallback(async () => {
-    if (!business) return;
-    try {
-      const res = await axios.post(`${API_URL}/api/get_column_names`, null, {
-        params: { business } ,withCredentials: true, 
-      });
-      setAvailableColumns(res?.data?.columns || []);
-    } catch (err) {
-      console.error('Error fetching available columns:', err);
-      setAvailableColumns([]);
-    }
-  }, [business]);
-
-  useEffect(() => {
-    if (business) {
-      fetchAvailableFields();
-      fetchAvailableColumns();
-    }
-  }, [business, fetchAvailableFields, fetchAvailableColumns]);
-
+  // Always use fetchFieldValues from useFilterManagement (manualFetchFieldValues does not exist here)
   return {
     startDate, setStartDate,
     endDate, setEndDate,
@@ -114,7 +94,6 @@ const useGroupbyReportManager = () => {
     groupbyFields, setGroupbyFields,
     selectedFields, setSelectedFields,
     rowData, fetchGroupbyData, loading,
-
     filterOpen, setFilterOpen,
     availableFields,
     filterConfig,
@@ -125,11 +104,10 @@ const useGroupbyReportManager = () => {
     removeFilter,
     resetFilters,
     applyFilters,
-    fetchFieldValues,
+    fetchFieldValues, // ensure this is the one from useFilterManagement
+    fetchAvailableFields,
     getFilterParams,
-
-    availableColumns,
-    fetchAvailableColumns,
+    availableColumns
   };
 };
 

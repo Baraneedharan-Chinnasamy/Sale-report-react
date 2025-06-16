@@ -180,6 +180,14 @@ const GroupbyReportControls = ({
     setDragOverIndex(null);
   };
 
+  // Handle business change - reset selected columns and group by fields
+  const handleBusinessChange = (newBusiness) => {
+    setBusiness(newBusiness);
+    // Reset columns and group by when business changes
+    setSelectedColumns([]);
+    setGroupBy([]);
+  };
+
   // Custom MultiValue component using global styles
   const CustomMultiValue = ({ data, removeProps, selectProps }) => {
     const isGroupBy = selectProps.isGroupBy;
@@ -250,17 +258,17 @@ const GroupbyReportControls = ({
           <div style={styles.inputGroup}>
             <label className={formStyles.label}>Business</label>
             <select
-          value={business}
-          onChange={(e) => setBusiness(e.target.value)}
-          className={formStyles.select}
-        >
-          <option value="">Select Business</option>
-          {businessOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+              value={business}
+              onChange={(e) => handleBusinessChange(e.target.value)}
+              className={formStyles.select}
+            >
+              <option value="">Select Business</option>
+              {businessOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ ...styles.inputGroup, flex: 2 }}>
@@ -279,7 +287,7 @@ const GroupbyReportControls = ({
               }
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
-             
+              isDisabled={!business} // Disable if no business selected
               components={{ MultiValue: CustomMultiValue }}
               menuPlacement="auto"
               menuPosition="fixed"
@@ -304,7 +312,6 @@ const GroupbyReportControls = ({
               }
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
-              
               isDisabled={selectedColumns.length === 0}
               components={{ MultiValue: CustomMultiValue }}
               menuPlacement="auto"
@@ -320,6 +327,7 @@ const GroupbyReportControls = ({
               <button
                 onClick={() => setShowArrangement(!showArrangement)}
                 className={`${buttonStyles.button} ${selectedColumns.length === 0 ? buttonStyles.disabled : ''}`}
+                disabled={selectedColumns.length === 0}
               >
                 <Bars3Icon className={buttonStyles.icon} />
                 Arrange ({selectedColumns.length})
@@ -372,9 +380,12 @@ const GroupbyReportControls = ({
             <button
               onClick={() => setFilterOpen(!filterOpen)}
               className={buttonStyles.advancedButton}
+              disabled={!business} // Disable if no business selected
               style={{
                 backgroundColor: filterOpen ? '#374151' : '#ffffff',
                 color: filterOpen ? '#ffffff' : '#374151',
+                opacity: !business ? 0.5 : 1,
+                cursor: !business ? 'not-allowed' : 'pointer'
               }}
             >
               <FunnelIcon className={buttonStyles.icon} />
@@ -388,8 +399,8 @@ const GroupbyReportControls = ({
           <div style={styles.rightButtons}>
             <button
               onClick={fetchData}
-              className={`${buttonStyles.button} ${buttonStyles.primary} ${loading ? buttonStyles.disabled : ''}`}
-              disabled={loading}
+              className={`${buttonStyles.button} ${buttonStyles.primary} ${loading || !business ? buttonStyles.disabled : ''}`}
+              disabled={loading || !business}
             >
               {loading ? (
                 <>
@@ -500,10 +511,11 @@ const customSelectStyles = {
     borderColor: state.isFocused ? '#3b82f6' : '#e1e5e9',
     border: '1px solid #cbd5e1',
     borderWidth: '1px',
-    backgroundColor: '#ffffff',
+    backgroundColor: state.isDisabled ? '#f9fafb' : '#ffffff',
     boxShadow: '0 1px 1px rgba(0, 0, 0, 0.04)',
-    cursor: 'pointer',
+    cursor: state.isDisabled ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s ease',
+    opacity: state.isDisabled ? 0.6 : 1,
     '&:hover': {
       borderColor: state.isFocused ? '#3b82f6' : '#3b82f6',
     },

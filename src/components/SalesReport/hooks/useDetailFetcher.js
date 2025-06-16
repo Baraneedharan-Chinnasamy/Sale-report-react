@@ -40,7 +40,7 @@ const useDetailFetcher = ({ business, aggregation, getFilterParams,startDate, en
       // Remove the override and use the actual selectedGroup parameter
       const groupByField = selectedGroup;
 
-      const response = await axios.get(`${API_URL}/api/detiles`, {
+      const response = await axios.get(`${API_URL}/api/Sale-Report/Detiled`, {
         params: {
           Start_Date: startDate,
           End_Date: endDate,

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import GroupbyReportControls from './GroupbyReportControls';
 import AdvancedFilters from './AdvancedFilters';
 import GroupbyGrid from './GroupbyGrid';
@@ -17,7 +17,6 @@ const GroupbyAggregationPage = () => {
     selectedFields, setSelectedFields,
     loading, rowData,
     fetchGroupbyData,
-
     filterOpen, setFilterOpen,
     availableFields,
     filterConfig,
@@ -28,33 +27,58 @@ const GroupbyAggregationPage = () => {
     removeFilter,
     resetFilters,
     applyFilters,
-    fetchFieldValues
+    fetchFieldValues,
+    fetchAvailableFields // <-- add this
   } = useGroupbyReportManager();
 
-  const handleManualFieldApply = () => {
-    const fields = manualFieldsInput
-      .split(',')
-      .map(f => f.trim())
-      .filter(Boolean);
-    if (fields.length > 0) {
-      setSelectedFields(prev => Array.from(new Set([...prev, ...fields])));
+  // Ensure availableFields are loaded when filter panel opens or business changes
+  useEffect(() => {
+    if (filterOpen && business) {
+      fetchAvailableFields();
     }
-  };
+  }, [filterOpen, business, fetchAvailableFields]);
 
-  // ✅ Only include non-empty values in payload
+  // Flush filter state and options when business changes
+  useEffect(() => {
+    setManualFieldsInput('');
+    // Reset filterConfig, availableFields, and filterValues for AdvancedFilters
+    if (filterOpen) {
+      setFilterOpen(false);
+      setTimeout(() => setFilterOpen(true), 0);
+    }
+    if (Array.isArray(filterConfig) && filterConfig.length > 0) {
+      filterConfig.splice(0, filterConfig.length);
+    }
+    if (availableFields && availableFields.length > 0) {
+      availableFields.splice(0, availableFields.length);
+    }
+    if (filterValues && Object.keys(filterValues).length > 0) {
+      Object.keys(filterValues).forEach(key => delete filterValues[key]);
+    }
+  }, [business]);
+
+  // Handle fetch data from main controls
   const handleFetchData = () => {
-   const applied = applyFilters(); // This now returns fresh filters
+    // Apply filters first to get the latest filter state
+    const applied = applyFilters();
+    
     const payload = {
       ...(startDate ? { startDate } : {}),
       ...(endDate ? { endDate } : {}),
       business,
       selectedFields,
       groupbyFields,
-      filters: applied, // ✅ use fresh filters
+      filters: applied,
     };
 
-
+    console.log('Fetching with payload:', payload);
     fetchGroupbyData(payload);
+  };
+
+  // Handle apply filters from AdvancedFilters component
+  const handleApplyFilters = () => {
+    // This will both apply filters and fetch data
+    handleFetchData();
   };
 
   return (
@@ -75,13 +99,13 @@ const GroupbyAggregationPage = () => {
         selectedColumns={selectedFields}
         setSelectedColumns={setSelectedFields}
         exportMainDataToCSV={(columns) =>
-        exportDataToCSV(
-          rowData,
-          columns.map(col => ({ field: col })), // or pass full col defs if available
-          'groupby_report.xlsx',
-          groupbyFields
-        )
-      }
+          exportDataToCSV(
+            rowData,
+            columns.map(col => ({ field: col })),
+            'groupby_report.xlsx',
+            groupbyFields
+          )
+        }
         appliedFilters={appliedFilters}
         filterOpen={filterOpen}
         setFilterOpen={setFilterOpen}
@@ -99,17 +123,19 @@ const GroupbyAggregationPage = () => {
           removeFilter={removeFilter}
           addFilter={addFilter}
           resetFilters={resetFilters}
-          applyFilters={handleFetchData} // ✅ uses clean payload
+          applyFilters={handleApplyFilters}
           fetchFieldValues={fetchFieldValues}
+          business={business} // Pass business prop to AdvancedFilters
         />
       )}
+      
       <div style={{ marginTop: '12px' }}> 
-      <GroupbyGrid
-        data={rowData}
-        onCellClicked={() => {}}
-        sizeColumns={[]}
-        selectedColumns={selectedFields} // ✅ Pass this to reflect arranged order
-      />
+        <GroupbyGrid
+          data={rowData}
+          onCellClicked={() => {}}
+          sizeColumns={[]}
+          selectedColumns={selectedFields}
+        />
       </div>
     </div>
   );

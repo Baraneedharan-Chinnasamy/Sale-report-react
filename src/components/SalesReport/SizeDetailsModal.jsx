@@ -15,7 +15,6 @@ const SizeDetailsModal = ({
   const getRowClass = (params) => (params.rowIndex % 2 === 0 ? '' : 'stripe-row');
 
   if (!showNestedModal) return null;
-
   return (
     <div style={styles.nestedModalOverlay}>
       <div style={styles.nestedModalBox}>

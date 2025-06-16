@@ -65,7 +65,7 @@ const useFetchData = ({
         });
       }
 
-      const response = await axios.get(`${API_URL}/api/daily-report`, {
+      const response = await axios.get(`${API_URL}/api/Sale-report`, {
         params: requestParams, withCredentials: true, 
       });
 

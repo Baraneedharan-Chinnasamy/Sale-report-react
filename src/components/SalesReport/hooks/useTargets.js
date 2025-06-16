@@ -20,7 +20,7 @@ const useTargets = (businessName) => {
 
     try {
       const response = await axios.get(
-        `${API_URL}/api/list-targets-with-status?business_name=${encodeURIComponent(businessName)}`,
+        `${API_URL}/api/target/list-targets-with-status?business_name=${encodeURIComponent(businessName)}`,
         {
           withCredentials: true, // ✅ Send cookies for auth/session
         }
@@ -55,7 +55,7 @@ const useTargets = (businessName) => {
       if (Target_Value !== undefined) payload.Target_Value = Target_Value;
 
       const res = await axios.post(
-        `${API_URL}/api/update-target-entry`,
+        `${API_URL}/api/target/update-target-entry`,
         payload,
         {
           withCredentials: true, // ✅ Send cookies
@@ -77,7 +77,7 @@ const useTargets = (businessName) => {
   const addTargets = async (entries) => {
     try {
       const res = await axios.post(
-        `${API_URL}/api/set-daily-targets`,
+        `${API_URL}/api/target/set-daily-targets`,
         entries,
         {
           withCredentials: true, // ✅ Added to fix missing cookies

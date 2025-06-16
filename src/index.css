@@ -41,19 +41,21 @@
   padding: 4px;
 }
 
-/* Cell Styling */
 .ag-theme-alpine .ag-cell {
   font-size: 11px;
   color: #1f2937;
-  font-variant-numeric: tabular-nums; /* for better number alignment */
+  font-variant-numeric: tabular-nums;
   border: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 12px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: background-color 0.2s ease;
 }
+
 
 /* Right-align numeric cells for readability */
 .ag-theme-alpine .ag-cell[col-id*="value"],

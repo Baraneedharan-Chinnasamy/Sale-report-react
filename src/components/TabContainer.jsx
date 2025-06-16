@@ -2,19 +2,22 @@ import React, { useState, useEffect } from 'react';
 import SalesReportGrid from './SalesReport/SalesReportGrid';
 import GroupbyAggregationPage from './SalesReport/GroupbyAggregationPage';
 import useLogout from './SalesReport/hooks/useLogout';
+import LaunchSummary from './SalesReport/LaunchSummary';
 
 import {
   Bars3Icon,
   ChartBarSquareIcon,
   Squares2X2Icon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  RocketLaunchIcon
 } from '@heroicons/react/24/solid';
 
 const GroupByTab = () => <GroupbyAggregationPage />;
 
 const TabContainer = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState('sales');
+  const [activeTab, setActiveTab] = useState('launch');
   const [collapsed, setCollapsed] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
   const [user, setUser] = useState(null);
   const { logout } = useLogout();
 
@@ -84,13 +87,23 @@ const TabContainer = ({ onLogout }) => {
     return displayName.charAt(0).toUpperCase();
   };
 
+  // Determine if sidebar should be shown as expanded
+  const shouldShowExpanded = !collapsed || isHovered;
+
   return (
     <div style={styles.container}>
-      <aside style={{ ...styles.sidebar, ...(collapsed ? styles.sidebarCollapsed : {}) }}>
+      <aside 
+        style={{
+          ...styles.sidebar,
+          ...(collapsed && !isHovered ? styles.sidebarCollapsed : {}),
+          ...(collapsed && isHovered ? styles.sidebarHovered : {})
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <div style={styles.sidebarHeader}>
-          {!collapsed && (
-              <h2 style={styles.logo}>Dashboard</h2>
-            
+          {shouldShowExpanded && (
+            <h2 style={styles.logo}>Dashboard</h2>
           )}
           <button
             style={styles.toggleButton}
@@ -106,10 +119,10 @@ const TabContainer = ({ onLogout }) => {
             style={{
               ...styles.tabButton,
               ...(activeTab === 'sales' ? styles.activeTab : {}),
-              ...(collapsed ? styles.collapsedButton : {})
+              ...(!shouldShowExpanded ? styles.collapsedButton : {})
             }}
             onClick={() => setActiveTab('sales')}
-            title={collapsed ? "Sales Report" : ""}
+            title={!shouldShowExpanded ? "Sales Report" : ""}
           >
             <div style={activeTab === 'sales' ? styles.activeIconContainer : styles.iconContainer}>
               <ChartBarSquareIcon style={{
@@ -117,17 +130,17 @@ const TabContainer = ({ onLogout }) => {
                 color: activeTab === 'sales' ? '#FFFFFF' : '#6B6B6B'
               }} />
             </div>
-            {!collapsed && <span style={styles.tabText}>Sales Report</span>}
+            {shouldShowExpanded && <span style={styles.tabText}>Sales Report</span>}
           </button>
 
           <button
             style={{
               ...styles.tabButton,
               ...(activeTab === 'group' ? styles.activeTab : {}),
-              ...(collapsed ? styles.collapsedButton : {})
+              ...(!shouldShowExpanded ? styles.collapsedButton : {})
             }}
             onClick={() => setActiveTab('group')}
-            title={collapsed ? "Automated Group By" : ""}
+            title={!shouldShowExpanded ? "Automated Group By" : ""}
           >
             <div style={activeTab === 'group' ? styles.activeIconContainer : styles.iconContainer}>
               <Squares2X2Icon style={{
@@ -135,12 +148,30 @@ const TabContainer = ({ onLogout }) => {
                 color: activeTab === 'group' ? '#FFFFFF' : '#6B6B6B'
               }} />
             </div>
-            {!collapsed && <span style={styles.tabText}>Automated Group By</span>}
+            {shouldShowExpanded && <span style={styles.tabText}>Automated Group By</span>}
+          </button>
+
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'launch' ? styles.activeTab : {}),
+              ...(!shouldShowExpanded ? styles.collapsedButton : {})
+            }}
+            onClick={() => setActiveTab('launch')}
+            title={!shouldShowExpanded ? "Launch Summary" : ""}
+          >
+            <div style={activeTab === 'launch' ? styles.activeIconContainer : styles.iconContainer}>
+              <RocketLaunchIcon style={{
+                ...styles.icon,
+                color: activeTab === 'launch' ? '#FFFFFF' : '#6B6B6B'
+              }} />
+            </div>
+            {shouldShowExpanded && <span style={styles.tabText}>Launch Summary</span>}
           </button>
         </nav>
 
         <div style={styles.userSection}>
-          {user && !collapsed && (
+          {user && shouldShowExpanded && (
             <div style={styles.userInfo}>
               <div style={styles.userAvatar}>
                 {getAvatarInitial()}
@@ -157,7 +188,7 @@ const TabContainer = ({ onLogout }) => {
           <button
             style={{
               ...styles.logoutButton,
-              ...(collapsed ? styles.collapsedLogoutButton : {})
+              ...(!shouldShowExpanded ? styles.collapsedLogoutButton : {})
             }}
             onClick={handleLogout}
             title="Logout"
@@ -168,12 +199,18 @@ const TabContainer = ({ onLogout }) => {
                 color: '#DC2626'
               }} />
             </div>
-            {!collapsed && <span style={styles.logoutText}>Logout</span>}
+            {shouldShowExpanded && <span style={styles.logoutText}>Logout</span>}
           </button>
         </div>
       </aside>
 
-      <main style={styles.mainContent}>
+      <main style={{
+        ...styles.mainContent,
+        marginLeft: collapsed ? '80px' : '280px'
+      }}>
+        <div style={{ display: activeTab === 'launch' ? 'block' : 'none', height: '100%' }}>
+          <LaunchSummary />
+        </div>
         <div style={{ display: activeTab === 'sales' ? 'block' : 'none', height: '100%' }}>
           <SalesReportGrid />
         </div>
@@ -189,9 +226,14 @@ const styles = {
   container: {
     display: 'flex',
     height: '100vh',
-    backgroundColor: '#f8fafc'
+    backgroundColor: '#f8fafc',
+    position: 'relative'
   },
   sidebar: {
+    position: 'fixed',
+    left: 0,
+    top: 0,
+    height: '100vh',
     width: '280px',
     background: 'linear-gradient(180deg, #FAFAF8 0%, #F5F5F2 100%)',
     color: '#4E4B4B',
@@ -200,10 +242,15 @@ const styles = {
     padding: '0',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     boxShadow: '4px 0 20px rgba(0, 0, 0, 0.08)',
-    borderRight: '1px solid #E8E6E0'
+    borderRight: '1px solid #E8E6E0',
+    zIndex: 1000
   },
   sidebarCollapsed: {
     width: '80px'
+  },
+  sidebarHovered: {
+    width: '280px',
+    boxShadow: '4px 0 30px rgba(0, 0, 0, 0.15)'
   },
   sidebarHeader: {
     display: 'flex',
@@ -220,19 +267,19 @@ const styles = {
   },
   logoIcon: {
     fontSize: '24px',
-    background: 'transperent',
+    background: 'transparent',
     borderRadius: '8px',
     width: '36px',
     height: '36px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: 'transperent'
+    boxShadow: 'transparent'
   },
   logo: {
     fontSize: '20px',
     fontWeight: '700',
-    color: '#fffff',
+    color: '#4E4B4B',
     margin: 0,
     letterSpacing: '-0.5px'
   },
@@ -392,7 +439,9 @@ const styles = {
     flex: 1,
     overflowY: 'auto',
     padding: '24px',
-    backgroundColor: '#FAFBFC'
+    backgroundColor: '#FAFBFC',
+    transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    marginLeft: '80px' // Default collapsed state
   }
 };
 

@@ -138,7 +138,7 @@ const useFilterManagement = (business) => {
     removeFilter,
     applyFilters,
     resetFilters,
-    fetchFieldValues,
+    fetchFieldValues, // <-- ensure this is always present
     getFilterParams
   };
 };
