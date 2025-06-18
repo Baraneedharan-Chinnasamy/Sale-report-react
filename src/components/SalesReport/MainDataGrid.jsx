@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ClientSideRowModelModule, ModuleRegistry } from 'ag-grid-community';
 import { MasterDetailModule } from 'ag-grid-enterprise';
@@ -325,6 +325,8 @@ if (fieldLower === 'date') {
 };
 
 const MainDataGrid = ({ gridRef, rowData, onCellClicked, sizeColumns = [] }) => {
+  const currentExpandedNodeRef = useRef(null);
+
   const columnDefs = useMemo(() => {
     if (!rowData || rowData.length === 0) return [];
     
@@ -387,6 +389,28 @@ const MainDataGrid = ({ gridRef, rowData, onCellClicked, sizeColumns = [] }) => 
     return null;
   };
 
+  // Handle row expansion with auto-close functionality
+  const handleRowGroupOpened = useCallback((event) => {
+    if (event.expanded) {
+      // If there's a currently expanded row and it's different from this one, collapse it
+      if (currentExpandedNodeRef.current && currentExpandedNodeRef.current !== event.node) {
+        currentExpandedNodeRef.current.setExpanded(false);
+      }
+      
+      // Update the reference to the currently expanded node
+      currentExpandedNodeRef.current = event.node;
+    } else {
+      // If this node is being collapsed and it's the current expanded node, clear the reference
+      if (currentExpandedNodeRef.current === event.node) {
+        currentExpandedNodeRef.current = null;
+      }
+    }
+  }, []);
+
+  // Override the default expand/collapse behavior
+  const isExternalFilterPresent = useCallback(() => false, []);
+  const doesExternalFilterPass = useCallback(() => true, []);
+
   const defaultColDef = {
     flex: 1,
     sortable: true,
@@ -397,6 +421,46 @@ const MainDataGrid = ({ gridRef, rowData, onCellClicked, sizeColumns = [] }) => 
     minWidth: 150,
     headerClass: 'grid-header-style',
   };
+
+  // Custom function to handle detail row expansion
+  const onRowGroupOpened = useCallback((params) => {
+    handleRowGroupOpened(params);
+  }, [handleRowGroupOpened]);
+
+  // Function to programmatically expand/collapse rows
+  const toggleRowExpansion = useCallback((rowNode) => {
+    if (!rowNode) return;
+
+    // Close any currently expanded row first
+    if (currentExpandedNodeRef.current && currentExpandedNodeRef.current !== rowNode) {
+      currentExpandedNodeRef.current.setExpanded(false);
+    }
+
+    // Toggle the clicked row
+    const isCurrentlyExpanded = rowNode.expanded;
+    rowNode.setExpanded(!isCurrentlyExpanded);
+
+    // Update the reference
+    if (!isCurrentlyExpanded) {
+      currentExpandedNodeRef.current = rowNode;
+    } else {
+      currentExpandedNodeRef.current = null;
+    }
+  }, []);
+
+  // Enhanced cell click handler that manages row expansion
+  const handleCellClicked = useCallback((params) => {
+    // Check if the clicked cell is the expand/collapse button
+    if (params.column.getColId() === 'date' && params.data?.target_wise) {
+      toggleRowExpansion(params.node);
+      return;
+    }
+
+    // Call the original onCellClicked handler
+    if (onCellClicked) {
+      onCellClicked(params);
+    }
+  }, [onCellClicked, toggleRowExpansion]);
 
   return (
     <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
@@ -415,7 +479,10 @@ const MainDataGrid = ({ gridRef, rowData, onCellClicked, sizeColumns = [] }) => 
         domLayout="normal"
         headerHeight={40}
         rowHeight={40}
-        onCellClicked={onCellClicked}
+        onCellClicked={handleCellClicked}
+        onRowGroupOpened={onRowGroupOpened}
+        isExternalFilterPresent={isExternalFilterPresent}
+        doesExternalFilterPass={doesExternalFilterPass}
         getRowStyle={(params) => {
         if (params.node.detail) {
           return {

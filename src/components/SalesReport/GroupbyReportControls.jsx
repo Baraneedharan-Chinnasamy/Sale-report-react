@@ -17,6 +17,14 @@ const BUSINESS_CODE_MAP = {
   "Authentication": "task_db"
 };
 
+// Google Sheets mapping - same as LaunchControl
+const BRAND_SHEET_MAP = {
+  "PRT9X2C6YBMLV0F": "https://docs.google.com/spreadsheets/d/1q5CAMOxVZnFAowxq9w0bbuX9bEPtwJOa9ERA3wCOReQ/edit?usp=sharing",
+  "BEE7W5ND34XQZRM": "https://docs.google.com/spreadsheets/d/1fyzL0TPVWSvQ71-N14AIav9e0qCAqGRu47dhUjA2R44/edit?usp=sharing",
+  "ADBXOUERJVK038L": "https://docs.google.com/spreadsheets/d/1AmFyKI_XMIrSsxyVk11fEgwa8RJMcBwYSKWuQvHh-eU/edit?usp=sharing",
+  "ZNG45F8J27LKMNQ": "https://docs.google.com/spreadsheets/d/15Y79kB1STCwCTNJT6dcK-weqazbqQeptXzXcDgJykT8/edit?usp=sharing"
+};
+
 const GroupbyReportControls = ({
   startDate = '',
   setStartDate = () => {},
@@ -73,6 +81,16 @@ const GroupbyReportControls = ({
   const selectedBusinessOption = useMemo(() => {
     return businessOptions.find(option => option.value === business) || null;
   }, [business, businessOptions]);
+
+  // Get current Google Sheets link based on selected business
+  const currentGoogleSheetLink = useMemo(() => {
+    return business ? BRAND_SHEET_MAP[business] : null;
+  }, [business]);
+
+  // Get current business name for display
+  const currentBusinessName = useMemo(() => {
+    return business ? BUSINESS_CODE_MAP[business] : '';
+  }, [business]);
 
   // Add click outside effect
   useEffect(() => {
@@ -229,6 +247,20 @@ const GroupbyReportControls = ({
     
     return null;
   };
+
+  // Google Sheets SVG icon - same as LaunchControl
+  const GoogleSheetsIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3Z" fill="#0F9D58"/>
+      <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM19 19H5V5H19V19Z" fill="#0F9D58"/>
+      <rect x="7" y="7" width="4" height="2" fill="white"/>
+      <rect x="13" y="7" width="4" height="2" fill="white"/>
+      <rect x="7" y="11" width="4" height="2" fill="white"/>
+      <rect x="13" y="11" width="4" height="2" fill="white"/>
+      <rect x="7" y="15" width="4" height="2" fill="white"/>
+      <rect x="13" y="15" width="4" height="2" fill="white"/>
+    </svg>
+  );
 
   return (
     <div className={formStyles.container}>
@@ -438,21 +470,34 @@ const GroupbyReportControls = ({
               Export CSV
             </button>
 
-            <button
-              onClick={() => {
-                  const visibleData = rowData.map(row =>
-                    selectedColumns.reduce((acc, col) => {
-                      acc[col] = row[col];
-                      return acc;
-                    }, {})
-                  );
-                  exportToGoogleSheet(business, "groupby", visibleData);
-                }}
-              disabled={!rowData || rowData.length === 0 || !business}
-              className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
-            >
-              📤 Export to Google Sheet
-            </button>
+            <div style={styles.exportSheetContainer}>
+              <button
+                onClick={() => {
+                    const visibleData = rowData.map(row =>
+                      selectedColumns.reduce((acc, col) => {
+                        acc[col] = row[col];
+                        return acc;
+                      }, {})
+                    );
+                    exportToGoogleSheet(business, "groupby", visibleData);
+                  }}
+                disabled={!rowData || rowData.length === 0 || !business}
+                className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
+              >
+                📤 Export to Google Sheet
+              </button>
+              {currentGoogleSheetLink && (
+                <a
+                  href={currentGoogleSheetLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.sheetIconLink}
+                  title={`Open Google Sheet for ${currentBusinessName}`}
+                >
+                  <GoogleSheetsIcon />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -460,7 +505,7 @@ const GroupbyReportControls = ({
   );
 };
 
-// Minimal inline styles for layout - using same pattern as ReportControls
+// Minimal inline styles for layout - updated to include exportSheetContainer
 const styles = {
   inputRow: {
     display: 'flex',
@@ -498,6 +543,28 @@ const styles = {
     gap: '8px',
     flexWrap: 'wrap',
     marginLeft: 'auto',
+  },
+  exportSheetContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px', // Space between button and icon
+  },
+  sheetIconLink: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    borderRadius: '6px',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #e1e5e9',
+    textDecoration: 'none',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: '#e9ecef',
+      borderColor: '#0F9D58',
+    },
   },
 };
 

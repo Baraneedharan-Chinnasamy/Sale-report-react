@@ -9,8 +9,8 @@ import AdvancedFilters from './AdvancedFilters';
 
 const LaunchSummary = () => {
   const [business, setBusiness] = React.useState('');
-  const [groupBy, setGroupBy] = React.useState('item_id');
-  const [days, setDays] = React.useState('30');
+  const [groupBy, setGroupBy] = React.useState('item_name');
+  const [days, setDays] = React.useState('60');
   const [rowData, setRowData] = React.useState([]);
   
   // Launch date filter states
@@ -19,6 +19,9 @@ const LaunchSummary = () => {
   
   // Multi-select columns state
   const [selectedColumns, setSelectedColumns] = React.useState([]);
+
+  // Period selection state - NEW
+  const [selectedPeriods, setSelectedPeriods] = React.useState([]);
 
   const {
     data,
@@ -40,8 +43,8 @@ const LaunchSummary = () => {
     removeFilter,
     resetFilters,
     applyFilters,
-    fetchAvailableFields ,
-    fetchFieldValues // <-- add this
+    fetchAvailableFields,
+    fetchFieldValues
   } = useFilterManagement(business);
 
   // Handle business change - clear data immediately
@@ -53,6 +56,8 @@ const LaunchSummary = () => {
       setLaunchDate('');
       // Clear selected columns when business changes
       setSelectedColumns([]);
+      // Clear selected periods when business changes
+      setSelectedPeriods([]);
     }
   }, [business]);
 
@@ -86,17 +91,33 @@ const LaunchSummary = () => {
 
   // Build launch date filter for API call
   const buildLaunchDateFilter = () => {
-    if (launchDateColumn && launchDate) {
-      return launchDate; // Return the date string as expected by backend
+    return launchDate || null;
+  };
+
+  // Calculate period parameters based on selection - NEW
+  const calculatePeriodParameters = () => {
+    if (!selectedPeriods || selectedPeriods.length === 0) {
+      // If nothing is selected, both are false
+      return {
+        calculate_first_period: false,
+        calculate_second_period: false
+      };
     }
-    return null;
+
+    return {
+      calculate_first_period: selectedPeriods.includes('first_period'),
+      calculate_second_period: selectedPeriods.includes('second_period')
+    };
   };
 
   const handleApplyFilters = () => {
     const applied = applyFilters();
+    const periodParams = calculatePeriodParameters(); // NEW
+    
     console.log('Applied filters:', applied);
     console.log('Selected columns:', selectedColumns);
     console.log('Launch date filter:', buildLaunchDateFilter());
+    console.log('Period parameters:', periodParams); // NEW
     
     // Manually fetch data after applying filters
     if (business && groupBy && days) {
@@ -105,8 +126,9 @@ const LaunchSummary = () => {
         groupBy,
         business,
         itemFilter: applied,
-        variationColumns: selectedColumns, // Pass selected columns
-        launchDateFilter: buildLaunchDateFilter()
+        variationColumns: selectedColumns,
+        launchDateFilter: buildLaunchDateFilter(),
+        ...periodParams // Spread period parameters - NEW
       });
     }
   };
@@ -116,10 +138,11 @@ const LaunchSummary = () => {
     const emptyFilters = resetFilters();
     console.log('Reset filters');
     
-    // Also reset launch date filters and selected columns
+    // Also reset launch date filters, selected columns, and periods
     setLaunchDateColumn('');
     setLaunchDate('');
     setSelectedColumns([]);
+    setSelectedPeriods([]); // NEW
     
     // Manually fetch data after resetting filters
     if (business && groupBy && days) {
@@ -128,8 +151,10 @@ const LaunchSummary = () => {
         groupBy,
         business,
         itemFilter: emptyFilters,
-        variationColumns: [], // Empty columns
-        launchDateFilter: null
+        variationColumns: [],
+        launchDateFilter: null,
+        calculate_first_period: false, // NEW
+        calculate_second_period: false // NEW
       });
     }
   };
@@ -142,12 +167,17 @@ const LaunchSummary = () => {
     setLaunchDateColumn(''); // Clear launch date filters
     setLaunchDate('');
     setSelectedColumns([]); // Clear selected columns
+    setSelectedPeriods([]); // Clear selected periods - NEW
   };
 
   // Manual fetch function that only runs when Fetch button is clicked
   const handleManualFetch = () => {
+    const periodParams = calculatePeriodParameters(); // NEW
+    
     console.log('Manual fetch triggered');
     console.log('Selected columns:', selectedColumns);
+    console.log('Selected periods:', selectedPeriods); // NEW
+    console.log('Period parameters:', periodParams); // NEW
     console.log('Launch date filter:', { launchDateColumn, launchDate });
     
     if (business && groupBy && days) {
@@ -156,8 +186,9 @@ const LaunchSummary = () => {
         groupBy,
         business,
         itemFilter: appliedFilters,
-        variationColumns: selectedColumns, // Pass selected columns to API
-        launchDateFilter: buildLaunchDateFilter()
+        variationColumns: selectedColumns,
+        launchDateFilter: buildLaunchDateFilter(),
+        ...periodParams // Spread period parameters - NEW
       });
     } else {
       console.log('Missing required fields:', { business, groupBy, days });
@@ -177,6 +208,8 @@ const LaunchSummary = () => {
     setLaunchDateColumn('');
     setLaunchDate('');
     setSelectedColumns([]);
+    setSelectedPeriods([]); // NEW
+    
     // Reset filterConfig, availableFields, and filterValues for AdvancedFilters
     if (filterOpen) {
       setFilterOpen(false);
@@ -220,6 +253,9 @@ const LaunchSummary = () => {
         // Multi-select columns props
         selectedColumns={selectedColumns}
         setSelectedColumns={setSelectedColumns}
+        // Period selection props - NEW
+        selectedPeriods={selectedPeriods}
+        setSelectedPeriods={setSelectedPeriods}
       />
 
       {/* Inline Advanced Filters block (not modal) */}
@@ -229,7 +265,7 @@ const LaunchSummary = () => {
             filterConfig={filterConfig}
             availableFields={availableFields}
             filterValues={filterValues}
-            fetchFieldValues={fetchFieldValues} // <-- use fetchFieldValues, not manualFetchFieldValues
+            fetchFieldValues={fetchFieldValues}
             updateFilter={updateFilter}
             removeFilter={removeFilter}
             addFilter={addFilter}
@@ -241,14 +277,13 @@ const LaunchSummary = () => {
       )}
       
       <div style={{ marginTop: '20px' }}>
-  <LaunchSummaryGrid
-    data={rowData}
-    selectedColumns={rowData[0] ? Object.keys(rowData[0]) : []}
-    loading={loading}
-    error={error}
-  />
-</div>
-
+        <LaunchSummaryGrid
+          data={rowData}
+          selectedColumns={rowData[0] ? Object.keys(rowData[0]) : []}
+          loading={loading}
+          error={error}
+        />
+      </div>
     </div>
   );
 };

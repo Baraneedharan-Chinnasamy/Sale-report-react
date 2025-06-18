@@ -18,6 +18,13 @@ const Login = ({ onLogin }) => {
     }
   };
 
+  const handleForgotPassword = () => {
+    // This will be handled by the wrapper component in App.js
+    if (window.onForgotPassword) {
+      window.onForgotPassword();
+    }
+  };
+
   return (
     <div className="login-container">
       <div className="login-card">
@@ -88,11 +95,17 @@ const Login = ({ onLogin }) => {
                 Signing In...
               </>
             ) : (
-              <>
-                
-                Sign In to Dashboard
-              </>
+              'Sign In to Dashboard'
             )}
+          </button>
+
+          {/* Forgot Password Button */}
+          <button 
+            type="button" 
+            className="forgot-password-button"
+            onClick={handleForgotPassword}
+          >
+            Forgot Password?
           </button>
         </form>
 

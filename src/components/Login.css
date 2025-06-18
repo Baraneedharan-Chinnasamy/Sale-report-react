@@ -250,3 +250,97 @@
     background: #000;
   }
 }
+
+
+/* Add these styles to your Login.css file */
+
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.success-message svg {
+  color: #28a745;
+  flex-shrink: 0;
+}
+
+.back-button {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: transparent;
+  color: #666;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+}
+
+.back-button:hover {
+  background-color: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.back-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.forgot-password-button {
+  background: transparent !important;
+  color: #007bff !important;
+  border: none !important;
+  font-size: 14px;
+  margin-top: 15px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  width: auto;
+}
+
+.forgot-password-button:hover {
+  color: #0056b3 !important;
+  text-decoration: none;
+}
+
+/* OTP Input specific styling */
+input[maxlength="6"] {
+  letter-spacing: 2px;
+  text-align: center;
+  font-family: monospace;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Disabled input styling */
+.form-input:disabled {
+  background-color: #f5f5f5 !important;
+  color: #666 !important;
+  cursor: not-allowed;
+}
+
+/* Animation for success messages */
+.success-message {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

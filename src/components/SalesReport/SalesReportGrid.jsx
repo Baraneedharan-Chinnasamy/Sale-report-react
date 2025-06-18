@@ -71,10 +71,6 @@ const SalesReportGrid = () => {
     compareEndDate  
   });
 
-  
- 
-
-
   const {
     modalRowData,
     modalColumnDefs,
@@ -141,6 +137,8 @@ const SalesReportGrid = () => {
 
     // Handle size columns
     if (sizeColumns.includes(field) && value) {
+        // Always close previous nested modal before opening a new one
+        closeNestedModal();
         const gridData = prepareSizeDetails(value, field.replaceAll('_', ' '));
 
       if (gridData) {

@@ -72,16 +72,42 @@ const useFilterManagement = (business) => {
   };
 
   const updateFilter = (index, key, value) => {
-    const newConfig = [...filterConfig];
-    newConfig[index][key] = value;
+  const newConfig = [...filterConfig];
 
-    if (key === 'field') {
-      newConfig[index].value = [];
-      fetchFieldValues(value); // preload first page
+  console.log(`\n--- updateFilter Debug ---`);
+  console.log(`Field index: ${index}`);
+  console.log(`Key being updated: ${key}`);
+  console.log(`Incoming value:`, value);
+  console.log(`Value type:`, typeof value);
+
+  if (key === 'value') {
+    if (typeof value === 'string') {
+      console.log('→ Storing string value as-is');
+      newConfig[index][key] = value;
+    } else if (Array.isArray(value)) {
+      console.log('→ Storing array value (cloned)');
+      newConfig[index][key] = [...value];
+    } else {
+      console.log('→ Storing value (fallback)');
+      newConfig[index][key] = value;
     }
+  } else {
+    newConfig[index][key] = value;
+  }
 
-    setFilterConfig(newConfig);
-  };
+  if (key === 'field') {
+    console.log('→ Field changed, resetting value and preloading field values...');
+    newConfig[index].value = [];
+    fetchFieldValues(value); // preload first page
+  }
+
+  console.log('Updated filter config:', newConfig[index]);
+  console.log('--------------------------\n');
+
+  setFilterConfig(newConfig);
+};
+
+
 
   const removeFilter = (index) => {
     const newConfig = [...filterConfig];
@@ -90,30 +116,46 @@ const useFilterManagement = (business) => {
   };
 
   const applyFilters = () => {
-  const validFilters = filterConfig.filter((f) => f.field && f.operator && f.value?.length);
+  const validFilters = filterConfig.filter((f) => f.field && f.operator && f.value !== undefined && f.value !== '');
+
   if (validFilters.length === 0) {
     setAppliedFilters({});
     setFilterOpen(false);
-    return {}; // ✅ return empty filters
+    return {};
   }
 
   const filters = {};
 
   validFilters.forEach(({ field, operator, value }) => {
-    const existing = filters[field]?.find((f) => f.operator === operator);
+    const valueToStore = Array.isArray(value) ? [...value] : value;
+
+    filters[field] = filters[field] || [];
+
+    const existing = filters[field].find((f) => f.operator === operator);
 
     if (existing) {
-      existing.value.push(...value.filter((v) => !existing.value.includes(v)));
+      if (Array.isArray(existing.value) && Array.isArray(value)) {
+        value.forEach((v) => {
+          if (!existing.value.includes(v)) {
+            existing.value.push(v);
+          }
+        });
+      } else {
+        // If value is not an array, just skip merging
+        console.warn(`Skipping merge for ${field}:${operator} as value is not an array`);
+      }
     } else {
-      filters[field] = filters[field] || [];
-      filters[field].push({ operator, value: [...value] });
+      filters[field].push({ operator, value: valueToStore });
     }
   });
 
+  console.log('✅ Final filters in applyFilters:', filters);
+
   setAppliedFilters(filters);
   setFilterOpen(false);
-  return filters; // ✅ return applied filters immediately
+  return filters;
 };
+
 
 
   const resetFilters = () => {

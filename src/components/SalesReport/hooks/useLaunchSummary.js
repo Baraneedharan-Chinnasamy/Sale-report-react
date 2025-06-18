@@ -14,7 +14,9 @@ const useLaunchSummary = () => {
     business, 
     itemFilter = {}, 
     variationColumns = [], 
-    launchDateFilter = null 
+    launchDateFilter = null,
+    calculate_first_period = true,  // NEW - default to true
+    calculate_second_period = true  // NEW - default to true
   }) => {
     setLoading(true);
     setError(null);
@@ -26,8 +28,12 @@ const useLaunchSummary = () => {
         business,
         item_filter: itemFilter,
         variation_columns: variationColumns,
-        launch_date_filter: launchDateFilter
+        launch_date_filter: launchDateFilter,
+        calculate_first_period,   // NEW
+        calculate_second_period   // NEW
       };
+
+      console.log('Hook payload being sent:', payload); // For debugging
 
       const response = await axios.post(`${API_URL}/api/launch-summary?business=${business}`, payload, {
         withCredentials: true,

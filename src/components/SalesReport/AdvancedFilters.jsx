@@ -21,6 +21,30 @@ const AdvancedFilters = ({
   const selectRefs = useRef({});
   const [optionCache, setOptionCache] = useState({});
 
+  // Define field types and their corresponding operators
+  const fieldTypes = {
+    '__Launch_Date': 'date',
+    '__Restock_Date': 'date',
+    '__Offer_Date': 'date',
+    'Current_Stock': 'number',
+    'Sale_Price': 'number',
+    'Sale_Discount': 'number',
+  };
+
+  const getOperatorOptions = (fieldType) => {
+    if (fieldType === 'date' || fieldType === 'number') {
+      return [
+        { label: 'Between', value: 'Between' },
+        { label: 'Greater Than or Equal', value: 'Greater_Than_Or_Equal' },
+        { label: 'Less Than or Equal', value: 'Less_Than_Or_Equal' }
+      ];
+    }
+    return [
+      { label: 'In', value: 'In' },
+      { label: 'Not In', value: 'Not_In' }
+    ];
+  };
+
   const loadOptions = async (field, inputValue, loadedOptions, additional = { page: 1 }) => {
     const isSearch = inputValue?.length >= 3;
     const page = additional.page || 1;
@@ -32,35 +56,133 @@ const AdvancedFilters = ({
   };
 
   useEffect(() => {
-  const loadMissingOptions = async () => {
-    for (const filter of filterConfig) {
-      if (filter.field && !optionCache[filter.field]) {
-        try {
-          const result = await fetchFieldValues(filter.field);
-          const values = result?.values || [];
-          setOptionCache(prev => ({
-            ...prev,
-            [filter.field]: values.map(v => ({ label: v, value: v }))
-          }));
-        } catch (err) {
-          console.error(`Failed to load values for field: ${filter.field}`, err);
+    const loadMissingOptions = async () => {
+      for (const filter of filterConfig) {
+        if (filter.field && !optionCache[filter.field] && !fieldTypes[filter.field]) {
+          try {
+            const result = await fetchFieldValues(filter.field);
+            const values = result?.values || [];
+            setOptionCache(prev => ({
+              ...prev,
+              [filter.field]: values.map(v => ({ label: v, value: v }))
+            }));
+          } catch (err) {
+            console.error(`Failed to load values for field: ${filter.field}`, err);
+          }
         }
       }
-    }
-  };
+    };
 
-  loadMissingOptions();
-}, [filterConfig, fetchFieldValues]);
-
+    loadMissingOptions();
+  }, [filterConfig, fetchFieldValues]);
 
   const handleFieldChange = (index, newField) => {
     updateFilter(index, 'field', newField);
-    updateFilter(index, 'value', []);
+    updateFilter(index, 'value', fieldTypes[newField] ? '' : []);
+    updateFilter(index, 'operator', ''); // Reset operator when field changes
     if (selectRefs.current[index]) {
       selectRefs.current[index].clearValue();
     }
-    if (newField && !optionCache[newField]) {
+    if (newField && !optionCache[newField] && !fieldTypes[newField]) {
       fetchFieldValues(newField);
+    }
+  };
+
+  const handleOperatorChange = (index, newOperator) => {
+    updateFilter(index, 'operator', newOperator);
+    // Reset value when operator changes to Between (needs array) or from Between (needs single value)
+    const currentValue = filterConfig[index].value;
+    if (newOperator === 'Between') {
+      updateFilter(index, 'value', ['', '']);
+    } else if (filterConfig[index].operator === 'Between' && newOperator !== 'Between') {
+      updateFilter(index, 'value', '');
+    }
+  };
+
+  const handleValueChange = (index, newValue, valueIndex = null) => {
+  const filter = filterConfig[index];
+
+  if (filter.operator === 'Between' && valueIndex !== null) {
+    const currentValue = Array.isArray(filter.value) && filter.value.length === 2
+      ? [...filter.value]
+      : ['', ''];
+    currentValue[valueIndex] = newValue;
+    console.log('Sending Between value to updateFilter:', currentValue);
+    updateFilter(index, 'value', currentValue);
+  } else {
+    console.log('Sending single value to updateFilter:', newValue);
+    updateFilter(index, 'value', newValue);
+  }
+};
+
+
+
+  const renderValueInput = (filter, index) => {
+    const fieldType = fieldTypes[filter.field];
+    
+    if (!fieldType) {
+      // Regular dropdown for non-special fields
+      return (
+        <AsyncPaginate
+          isMulti
+          ref={(ref) => {
+            if (ref) {
+              selectRefs.current[index] = ref;
+            }
+          }}
+          key={`select-${filter.field}-${index}`}
+          defaultOptions={optionCache[filter.field] || []}
+          value={
+            Array.isArray(filter.value) && filter.value.length > 0
+              ? filter.value.map((val) => ({ label: val, value: val }))
+              : null
+          }
+          loadOptions={(inputValue, loadedOptions, additional) =>
+            loadOptions(filter.field, inputValue, loadedOptions, additional)
+          }
+          onChange={(selected) =>
+            updateFilter(index, 'value', selected ? selected.map((s) => s.value) : [])
+          }
+          placeholder="Search (min 3 char) or select values..."
+          additional={{ page: 1 }}
+          styles={customSelectStyles}
+        />
+      );
+    }
+
+    // Handle special field types
+    if (filter.operator === 'Between') {
+      const values = Array.isArray(filter.value) ? filter.value : ['', ''];
+      return (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1 }}>
+          <input
+            type={fieldType === 'date' ? 'date' : 'number'}
+            value={values[0] || ''}
+            onChange={(e) => handleValueChange(index, e.target.value, 0)}
+            placeholder="From"
+            style={inputStyles}
+          />
+          <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500' }}>to</span>
+          <input
+            type={fieldType === 'date' ? 'date' : 'number'}
+            value={values[1] || ''}
+            onChange={(e) => handleValueChange(index, e.target.value, 1)}
+            placeholder="To"
+            style={inputStyles}
+          />
+        </div>
+      );
+    } else {
+      // Single input for Greater_Than_Or_Equal and Less_Than_Or_Equal
+      return (
+        <input
+          type={fieldType === 'date' ? 'date' : 'number'}
+          value={filter.value || ''}
+          onChange={(e) => handleValueChange(index, e.target.value)}
+          placeholder={fieldType === 'date' ? 'Select date' : 'Enter number'}
+          style={{ ...inputStyles, flex: 1 }}
+        />
+      );
     }
   };
 
@@ -135,7 +257,6 @@ const AdvancedFilters = ({
       zIndex: 9999,
       overflow: 'hidden',
     }),
-
     menuList: (base) => ({
       ...base,
       maxHeight: '150px',
@@ -143,10 +264,19 @@ const AdvancedFilters = ({
     }),
   };
 
-  const operatorOptions = [
-    { label: 'In', value: 'In' },
-    { label: 'Not In', value: 'Not_In' }
-  ];
+  const inputStyles = {
+    height: '30px',
+    border: '1px solid #cbd5e1',
+    borderRadius: '6px',
+    padding: '0 8px',
+    fontSize: '12.5px',
+    backgroundColor: '#fff',
+    outline: 'none',
+    '&:focus': {
+      borderColor: '#3b82f6',
+      boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.4)'
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -197,6 +327,9 @@ const AdvancedFilters = ({
           value: f,
         }));
 
+        const fieldType = fieldTypes[filter.field];
+        const operatorOptions = getOperatorOptions(fieldType);
+
         return (
           <div key={index} style={styles.filterRow}>
             <Select
@@ -207,62 +340,43 @@ const AdvancedFilters = ({
                 ...customSelectStyles,
                 container: (base) => ({
                   ...base,
-                  minWidth: '180px', // Adjust width here
+                  minWidth: '180px',
                   flexShrink: 0
                 })
               }}
               placeholder="Select Field"
-
             />
 
             <Select
               options={operatorOptions}
               value={operatorOptions.find(opt => opt.value === filter.operator)}
-              onChange={(selected) => updateFilter(index, 'operator', selected?.value)}
-              styles={customSelectStyles}
+              onChange={(selected) => handleOperatorChange(index, selected?.value)}
+              styles={{
+                ...customSelectStyles,
+                container: (base) => ({
+                  ...base,
+                  minWidth: '160px',
+                  flexShrink: 0
+                })
+              }}
               placeholder="Operator"
-
             />
 
             <div style={{ flex: 1 }}>
-              {filter.field && (
-                <AsyncPaginate
-                  isMulti
-                  ref={(ref) => {
-                    if (ref) {
-                      selectRefs.current[index] = ref;
-                    }
-                  }}
-                  key={`select-${filter.field}-${index}`}
-                  defaultOptions={optionCache[filter.field] || []}
-                  value={
-                    Array.isArray(filter.value) && filter.value.length > 0
-                      ? filter.value.map((val) => ({ label: val, value: val }))
-                      : null
-                  }
-                  loadOptions={(inputValue, loadedOptions, additional) =>
-                    loadOptions(filter.field, inputValue, loadedOptions, additional)
-                  }
-                  onChange={(selected) =>
-                    updateFilter(index, 'value', selected ? selected.map((s) => s.value) : [])
-                  }
-                  placeholder="Search (min 3 char) or select values..."
-                  additional={{ page: 1 }}
-                  styles={customSelectStyles}
-
-                />
-              )}
+              {filter.field && filter.operator && renderValueInput(filter, index)}
             </div>
 
             <Button
               onClick={() => removeFilter(index)}
               style={{
-                backgroundColor: '#ef4444', padding: '4px 6px', height: '28px',
+                backgroundColor: '#ef4444', 
+                padding: '4px 6px', 
+                height: '28px',
                 width: '28px',
                 minWidth: 'unset',
                 borderRadius: '6px',
                 fontSize: '14px',
-                lineHeight: 1,
+                lineLength: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -271,7 +385,6 @@ const AdvancedFilters = ({
             >
               ✕
             </Button>
-
           </div>
         );
       })}
@@ -295,7 +408,6 @@ const AdvancedFilters = ({
         <PlusIcon style={{ width: '14px', height: '14px' }} />
         Add Filter Condition
       </Button>
-
     </div>
   );
 };
@@ -308,11 +420,9 @@ const styles = {
     marginTop: '12px',
     border: '1px solid #e5e7eb',
     boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-  }
-  ,
+  },
   header: {
     display: 'flex',
-
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '12px'
@@ -334,8 +444,6 @@ const styles = {
     border: 'none',
     boxShadow: 'none'
   }
-
-
 };
 
 export default AdvancedFilters;

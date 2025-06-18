@@ -15,7 +15,7 @@ import {
 const GroupByTab = () => <GroupbyAggregationPage />;
 
 const TabContainer = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState('launch');
+  const [activeTab, setActiveTab] = useState('sales');
   const [collapsed, setCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [user, setUser] = useState(null);

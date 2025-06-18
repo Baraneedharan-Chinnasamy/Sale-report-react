@@ -3,7 +3,8 @@ import Select from 'react-select';
 import {
   ArrowDownTrayIcon,
   FunnelIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ExternalLinkIcon
 } from '@heroicons/react/24/solid';
 import axios from 'axios';
 import useExportToSheet from './hooks/useExportToSheet';
@@ -29,7 +30,10 @@ const LaunchControl = ({
   setLaunchDate,
   // Multi-select columns props
   selectedColumns,
-  setSelectedColumns
+  setSelectedColumns,
+  // Period selection props
+  selectedPeriods,
+  setSelectedPeriods
 }) => {
   const [availableBusinessCodes, setAvailableBusinessCodes] = useState([]);
   const [columnOptions, setColumnOptions] = useState([]);
@@ -43,6 +47,14 @@ const LaunchControl = ({
     "Authentication": "task_db"
   };
 
+  // Google Sheets mapping
+  const BRAND_SHEET_MAP = {
+    "PRT9X2C6YBMLV0F": "https://docs.google.com/spreadsheets/d/1q5CAMOxVZnFAowxq9w0bbuX9bEPtwJOa9ERA3wCOReQ/edit?usp=sharing",
+    "BEE7W5ND34XQZRM": "https://docs.google.com/spreadsheets/d/1fyzL0TPVWSvQ71-N14AIav9e0qCAqGRu47dhUjA2R44/edit?usp=sharing",
+    "ADBXOUERJVK038L": "https://docs.google.com/spreadsheets/d/1AmFyKI_XMIrSsxyVk11fEgwa8RJMcBwYSKWuQvHh-eU/edit?usp=sharing",
+    "ZNG45F8J27LKMNQ": "https://docs.google.com/spreadsheets/d/15Y79kB1STCwCTNJT6dcK-weqazbqQeptXzXcDgJykT8/edit?usp=sharing"
+  };
+
   // Columns to exclude from the dropdown
   const EXCLUDED_COLUMNS = [
     'item_id',
@@ -53,6 +65,12 @@ const LaunchControl = ({
     'category',
     'sale_discount',  
     "sale_price",
+  ];
+
+  // Period options for multi-select
+  const periodOptions = [
+    { value: 'first_period', label: 'First Period' },
+    { value: 'second_period', label: 'Second Period' }
   ];
 
   // Get business options from localStorage - same pattern as GroupbyReportControls
@@ -76,6 +94,16 @@ const LaunchControl = ({
       return [];
     }
   }, []);
+
+  // Get current Google Sheets link based on selected business
+  const currentGoogleSheetLink = useMemo(() => {
+    return business ? BRAND_SHEET_MAP[business] : null;
+  }, [business]);
+
+  // Get current business name for display
+  const currentBusinessName = useMemo(() => {
+    return business ? BUSINESS_CODE_MAP[business] : '';
+  }, [business]);
 
   // Set available business codes for backward compatibility
   useEffect(() => {
@@ -125,7 +153,7 @@ const LaunchControl = ({
     fetchColumnOptions();
   }, [business]);
 
-  // Clear launch date and selected columns when business changes
+  // Clear launch date, selected columns, and selected periods when business changes
   useEffect(() => {
     if (setLaunchDate) {
       setLaunchDate('');
@@ -133,13 +161,22 @@ const LaunchControl = ({
     if (setSelectedColumns) {
       setSelectedColumns([]);
     }
-  }, [business, setLaunchDate, setSelectedColumns]);
+    if (setSelectedPeriods) {
+      setSelectedPeriods([]);
+    }
+  }, [business, setLaunchDate, setSelectedColumns, setSelectedPeriods]);
 
   // Find selected column options for multi-select
   const selectedColumnOptions = useMemo(() => {
     if (!selectedColumns || selectedColumns.length === 0) return [];
     return columnOptions.filter(option => selectedColumns.includes(option.value));
   }, [selectedColumns, columnOptions]);
+
+  // Find selected period options for multi-select
+  const selectedPeriodOptions = useMemo(() => {
+    if (!selectedPeriods || selectedPeriods.length === 0) return [];
+    return periodOptions.filter(option => selectedPeriods.includes(option.value));
+  }, [selectedPeriods]);
 
   // Group By options (convert to Select format)
   const groupByOptions = [
@@ -219,6 +256,20 @@ const LaunchControl = ({
     return null;
   };
 
+  // Google Sheets SVG icon
+  const GoogleSheetsIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3Z" fill="#0F9D58"/>
+      <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM19 19H5V5H19V19Z" fill="#0F9D58"/>
+      <rect x="7" y="7" width="4" height="2" fill="white"/>
+      <rect x="13" y="7" width="4" height="2" fill="white"/>
+      <rect x="7" y="11" width="4" height="2" fill="white"/>
+      <rect x="13" y="11" width="4" height="2" fill="white"/>
+      <rect x="7" y="15" width="4" height="2" fill="white"/>
+      <rect x="13" y="15" width="4" height="2" fill="white"/>
+    </svg>
+  );
+
   return (
     <div className={formStyles.container}>
       <div className={formStyles.formContainer}>
@@ -279,9 +330,9 @@ const LaunchControl = ({
             />
           </div>
 
-          <div style={{ ...styles.inputGroup, flex: 2 }}>
+          <div style={{ ...styles.inputGroup, flex: 1.5 }}>
             <div style={styles.labelWithBadge}>
-              <label className={formStyles.label}>Choose Extra Columns (Multi-select)</label>
+              <label className={formStyles.label}>Choose Extra Columns</label>
               {selectedColumns && selectedColumns.length > 0 && (
                 <span className={buttonStyles.badge}>{selectedColumns.length}</span>
               )}
@@ -295,6 +346,32 @@ const LaunchControl = ({
               }}
               isDisabled={!business || columnOptions.length === 0}
               placeholder="Select Columns"
+              isClearable
+              isMulti={true}
+              closeMenuOnSelect={false}
+              hideSelectedOptions={false}
+              components={{ MultiValue: CustomMultiValue }}
+              styles={customSelectStyles}
+              menuPlacement="auto"
+              menuPosition="fixed"
+            />
+          </div>
+
+          <div style={{ ...styles.inputGroup, flex: 1.2 }}>
+            <div style={styles.labelWithBadge}>
+              <label className={formStyles.label}>Periods</label>
+              {selectedPeriods && selectedPeriods.length > 0 && (
+                <span className={buttonStyles.badge}>{selectedPeriods.length}</span>
+              )}
+            </div>
+            <Select
+              options={periodOptions}
+              value={selectedPeriodOptions}
+              onChange={(selected) => {
+                const values = selected ? selected.map(option => option.value) : [];
+                setSelectedPeriods && setSelectedPeriods(values);
+              }}
+              placeholder="Select Periods"
               isClearable
               isMulti={true}
               closeMenuOnSelect={false}
@@ -354,13 +431,26 @@ const LaunchControl = ({
               Export CSV
             </button>
 
-            <button
-              onClick={() => exportToGoogleSheet(business, "Launch Summary", rowData)}
-              disabled={!rowData || rowData.length === 0 || !business}
-              className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
-            >
-              📤 Export to Google Sheet
-            </button>
+            <div style={styles.exportSheetContainer}>
+              <button
+                onClick={() => exportToGoogleSheet(business, "Launch Summary", rowData)}
+                disabled={!rowData || rowData.length === 0 || !business}
+                className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
+              >
+                📤 Export to Google Sheet
+              </button>
+              {currentGoogleSheetLink && (
+                <a
+                  href={currentGoogleSheetLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.sheetIconLink}
+                  title={`Open Google Sheet for ${currentBusinessName}`}
+                >
+                  <GoogleSheetsIcon />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -368,7 +458,7 @@ const LaunchControl = ({
   );
 };
 
-// Styles - same as GroupbyReportControls
+// Styles - updated to position Google Sheets icon next to button
 const styles = {
   inputRow: {
     display: 'flex',
@@ -406,6 +496,28 @@ const styles = {
     gap: '8px',
     flexWrap: 'wrap',
     marginLeft: 'auto',
+  },
+  exportSheetContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px', // Space between button and icon
+  },
+  sheetIconLink: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    borderRadius: '6px',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #e1e5e9',
+    textDecoration: 'none',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: '#e9ecef',
+      borderColor: '#0F9D58',
+    },
   },
 };
 
