@@ -1,0 +1,222 @@
+
+
+.advanced-filters-container {
+  background-color: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.advanced-filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.advanced-filters-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.advanced-filters-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: transparent;
+  border-radius: 0px;
+  border: none;
+  box-shadow: none;
+}
+
+.advanced-filters-warning-box {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.advanced-filters-business-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.advanced-filters-fields-warning {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.advanced-filters-input {
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12.5px;
+  background-color: #fff;
+  outline: none;
+}
+
+.advanced-filters-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+}
+
+.advanced-filters-between-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+}
+
+.advanced-filters-between-text {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.advanced-filters-between-input {
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12.5px;
+  background-color: #fff;
+  outline: none;
+}
+
+.advanced-filters-between-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+}
+
+.advanced-filters-single-input {
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12.5px;
+  background-color: #fff;
+  outline: none;
+  flex: 1;
+}
+
+.advanced-filters-single-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+}
+
+.advanced-filters-value-container {
+  flex: 1;
+}
+
+.advanced-filters-remove-btn {
+  background-color: #ef4444;
+  padding: 4px 6px;
+  height: 28px;
+  width: 28px;
+  min-width: unset;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.advanced-filters-remove-btn:hover {
+  background-color: #dc2626;
+}
+
+.advanced-filters-button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.advanced-filters-reset-btn {
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  color: #343434;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+}
+
+.advanced-filters-reset-btn:hover {
+  background-color: #f9fafb;
+}
+
+.advanced-filters-apply-btn {
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: #343434;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+}
+
+.advanced-filters-apply-btn:hover {
+  background-color: #f9fafb;
+}
+
+.advanced-filters-add-btn {
+  margin-top: 10px;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: black;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+}
+
+.advanced-filters-add-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.advanced-filters-add-btn:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.advanced-filters-field-select-container {
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
+.advanced-filters-operator-select-container {
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+.advanced-filters-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.advanced-filters-check-icon {
+  width: 16px;
+  height: 16px;
+}

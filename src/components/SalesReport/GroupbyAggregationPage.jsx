@@ -5,9 +5,19 @@ import GroupbyGrid from './GroupbyGrid';
 import useGroupbyReportManager from './hooks/useGroupbyReportManager';
 import { exportDataToCSV } from './utils/exportUtils';
 
+// Map business code to name
+const BUSINESS_CODE_MAP = {
+  "ZNG45F8J27LKMNQ": "zing",
+  "PRT9X2C6YBMLV0F": "prathiksham", 
+  "BEE7W5ND34XQZRM": "beelittle",
+  "ADBXOUERJVK038L": "adoreaboo",
+  "Authentication": "task_db"
+};
+
 const GroupbyAggregationPage = () => {
   const gridRef = useRef();
   const [manualFieldsInput, setManualFieldsInput] = useState('');
+  const [aggregationColumns, setAggregationColumns] = useState([]);
 
   const {
     startDate, setStartDate,
@@ -28,19 +38,36 @@ const GroupbyAggregationPage = () => {
     resetFilters,
     applyFilters,
     fetchFieldValues,
-    fetchAvailableFields // <-- add this
+    fetchAvailableFields
   } = useGroupbyReportManager();
+
+  // Get business from localStorage and map to business code
+  const currentBusiness = React.useMemo(() => {
+    try {
+      const businessName = localStorage.getItem('selectedBusiness') || '';
+      return Object.keys(BUSINESS_CODE_MAP).find(
+        code => BUSINESS_CODE_MAP[code] === businessName
+      ) || ''; // return business code or empty string if not found
+    } catch (error) {
+      console.error('Error getting business from localStorage:', error);
+      return '';
+    }
+  }, []);
 
   // Ensure availableFields are loaded when filter panel opens or business changes
   useEffect(() => {
-    if (filterOpen && business) {
+    if (filterOpen && currentBusiness) {
       fetchAvailableFields();
     }
-  }, [filterOpen, business, fetchAvailableFields]);
+  }, [filterOpen, currentBusiness, fetchAvailableFields]);
 
   // Flush filter state and options when business changes
   useEffect(() => {
     setManualFieldsInput('');
+    setSelectedFields([]);
+    setAggregationColumns([]);
+    setGroupbyFields([]);
+    
     // Reset filterConfig, availableFields, and filterValues for AdvancedFilters
     if (filterOpen) {
       setFilterOpen(false);
@@ -55,7 +82,7 @@ const GroupbyAggregationPage = () => {
     if (filterValues && Object.keys(filterValues).length > 0) {
       Object.keys(filterValues).forEach(key => delete filterValues[key]);
     }
-  }, [business]);
+  }, [currentBusiness]);
 
   // Handle fetch data from main controls
   const handleFetchData = () => {
@@ -65,8 +92,8 @@ const GroupbyAggregationPage = () => {
     const payload = {
       ...(startDate ? { startDate } : {}),
       ...(endDate ? { endDate } : {}),
-      business,
-      selectedFields,
+      business: currentBusiness, // Now passing business code
+      selectedFields: [...selectedFields, ...aggregationColumns], // Combine both column types
       groupbyFields,
       filters: applied,
     };
@@ -92,12 +119,12 @@ const GroupbyAggregationPage = () => {
         setStartDate={setStartDate}
         endDate={endDate}
         setEndDate={setEndDate}
-        business={business}
-        setBusiness={setBusiness}
         groupBy={groupbyFields}
         setGroupBy={setGroupbyFields}
         selectedColumns={selectedFields}
         setSelectedColumns={setSelectedFields}
+        aggregationColumns={aggregationColumns}
+        setAggregationColumns={setAggregationColumns}
         exportMainDataToCSV={(columns) =>
           exportDataToCSV(
             rowData,
@@ -125,7 +152,7 @@ const GroupbyAggregationPage = () => {
           resetFilters={resetFilters}
           applyFilters={handleApplyFilters}
           fetchFieldValues={fetchFieldValues}
-          business={business} // Pass business prop to AdvancedFilters
+          business={currentBusiness} // Pass current business from localStorage
         />
       )}
       
@@ -134,7 +161,7 @@ const GroupbyAggregationPage = () => {
           data={rowData}
           onCellClicked={() => {}}
           sizeColumns={[]}
-          selectedColumns={selectedFields}
+          selectedColumns={[...selectedFields, ...aggregationColumns]} // Show both column types in grid
         />
       </div>
     </div>

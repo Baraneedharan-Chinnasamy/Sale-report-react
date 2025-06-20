@@ -4,7 +4,7 @@ import React from 'react';
 import LaunchControl from './LaunchControl';
 import LaunchSummaryGrid from './LaunchSummaryGrid';
 import useLaunchSummary from './hooks/useLaunchSummary';
-import useFilterManagement from './hooks/useFilterManagement';
+import useFieldValues from './hooks/useFieldValues';
 import AdvancedFilters from './AdvancedFilters';
 
 const LaunchSummary = () => {
@@ -23,29 +23,36 @@ const LaunchSummary = () => {
   // Period selection state - NEW
   const [selectedPeriods, setSelectedPeriods] = React.useState([]);
 
+  // Local filter state (array of { field, operator, value })
+  const [filters, setFilters] = React.useState([
+    { field: '', operator: '', value: '' }
+  ]);
+
+  // Add/Remove/Update filter logic
+  const addFilter = () => setFilters([...filters, { field: '', operator: '', value: '' }]);
+  const removeFilter = (index) => setFilters(filters.filter((_, i) => i !== index));
+  const updateFilter = (index, property, value) => {
+    setFilters(filters => {
+      const newFilters = [...filters];
+      newFilters[index] = { ...newFilters[index], [property]: value };
+      // Optionally clear value for all subsequent filters if a previous filter changes
+      for (let i = index + 1; i < newFilters.length; i++) {
+        newFilters[i].value = '';
+      }
+      return newFilters;
+    });
+  };
+
+  // Example: use useFieldValues for each filter row (for UI, see AdvancedFilters)
+  // const previousFilters = filters.slice(0, index).filter(f => f.field && f.operator && f.value);
+  // const { fieldValues, loading } = useFieldValues(filter.field, business, previousFilters, search, offset, limit);
+
   const {
     data,
     loading,
     error,
     fetchLaunchSummary
   } = useLaunchSummary();
-
-  const {
-    filterOpen,
-    setFilterOpen,
-    availableFields,
-    filterConfig,
-    filterValues,
-    appliedFilters,
-    manualFetchFieldValues,
-    addFilter,
-    updateFilter,
-    removeFilter,
-    resetFilters,
-    applyFilters,
-    fetchAvailableFields,
-    fetchFieldValues
-  } = useFilterManagement(business);
 
   // Handle business change - clear data immediately
   React.useEffect(() => {
@@ -110,54 +117,10 @@ const LaunchSummary = () => {
     };
   };
 
-  const handleApplyFilters = () => {
-    const applied = applyFilters();
-    const periodParams = calculatePeriodParameters(); // NEW
-    
-    console.log('Applied filters:', applied);
-    console.log('Selected columns:', selectedColumns);
-    console.log('Launch date filter:', buildLaunchDateFilter());
-    console.log('Period parameters:', periodParams); // NEW
-    
-    // Manually fetch data after applying filters
-    if (business && groupBy && days) {
-      fetchLaunchSummary({
-        days,
-        groupBy,
-        business,
-        itemFilter: applied,
-        variationColumns: selectedColumns,
-        launchDateFilter: buildLaunchDateFilter(),
-        ...periodParams // Spread period parameters - NEW
-      });
-    }
-  };
+  // When you need the applied filters, use:
+  const appliedFilters = filters.filter(f => f.field && f.operator && f.value);
 
-  // Handle reset filters and fetch
-  const handleResetFilters = () => {
-    const emptyFilters = resetFilters();
-    console.log('Reset filters');
-    
-    // Also reset launch date filters, selected columns, and periods
-    setLaunchDateColumn('');
-    setLaunchDate('');
-    setSelectedColumns([]);
-    setSelectedPeriods([]); // NEW
-    
-    // Manually fetch data after resetting filters
-    if (business && groupBy && days) {
-      fetchLaunchSummary({
-        days,
-        groupBy,
-        business,
-        itemFilter: emptyFilters,
-        variationColumns: [],
-        launchDateFilter: null,
-        calculate_first_period: false, // NEW
-        calculate_second_period: false // NEW
-      });
-    }
-  };
+  // Use appliedFilters in your fetchLaunchSummary and other logic.
 
   // Handle business change from LaunchControl - NO AUTO FETCH
   const handleBusinessChange = (newBusiness) => {
@@ -174,58 +137,30 @@ const LaunchSummary = () => {
   const handleManualFetch = () => {
     const periodParams = calculatePeriodParameters(); // NEW
     
-    console.log('Manual fetch triggered');
-    console.log('Selected columns:', selectedColumns);
-    console.log('Selected periods:', selectedPeriods); // NEW
-    console.log('Period parameters:', periodParams); // NEW
-    console.log('Launch date filter:', { launchDateColumn, launchDate });
+    console.log('Fetch button clicked!');
+    console.log('Current fetch params:', {
+      // business, // removed from log
+      groupBy,
+      days,
+      appliedFilters,
+      selectedColumns,
+      launchDate: buildLaunchDateFilter(),
+      ...periodParams
+    });
     
-    if (business && groupBy && days) {
+    if (groupBy && days) { // removed business from check
       fetchLaunchSummary({
         days,
         groupBy,
-        business,
         itemFilter: appliedFilters,
         variationColumns: selectedColumns,
         launchDateFilter: buildLaunchDateFilter(),
         ...periodParams // Spread period parameters - NEW
       });
     } else {
-      console.log('Missing required fields:', { business, groupBy, days });
+      console.log('Missing required fields:', { groupBy, days }); // removed business from log
     }
   };
-
-  // Ensure availableFields are loaded when filter panel opens or business changes
-  React.useEffect(() => {
-    if (filterOpen && business) {
-      fetchAvailableFields();
-    }
-  }, [filterOpen, business, fetchAvailableFields]);
-
-  // Flush filter state and options when business changes
-  React.useEffect(() => {
-    setRowData([]);
-    setLaunchDateColumn('');
-    setLaunchDate('');
-    setSelectedColumns([]);
-    setSelectedPeriods([]); // NEW
-    
-    // Reset filterConfig, availableFields, and filterValues for AdvancedFilters
-    if (filterOpen) {
-      setFilterOpen(false);
-      setTimeout(() => setFilterOpen(true), 0);
-    }
-    // Explicitly clear filterConfig, filterValues, and availableFields
-    if (Array.isArray(filterConfig) && filterConfig.length > 0) {
-      filterConfig.splice(0, filterConfig.length);
-    }
-    if (availableFields && availableFields.length > 0) {
-      availableFields.splice(0, availableFields.length);
-    }
-    if (filterValues && Object.keys(filterValues).length > 0) {
-      Object.keys(filterValues).forEach(key => delete filterValues[key]);
-    }
-  }, [business]);
 
   return (
     <div>
@@ -241,8 +176,6 @@ const LaunchSummary = () => {
         fetchData={handleManualFetch}
         exportMainDataToCSV={exportMainDataToCSV}
         rowData={rowData}
-        filterOpen={filterOpen}
-        setFilterOpen={setFilterOpen}
         appliedFilters={appliedFilters}
         loading={loading}
         // Launch date filter props
@@ -258,23 +191,16 @@ const LaunchSummary = () => {
         setSelectedPeriods={setSelectedPeriods}
       />
 
-      {/* Inline Advanced Filters block (not modal) */}
-      {filterOpen && (
-        <div style={{ marginTop: '12px' }}>
-          <AdvancedFilters
-            filterConfig={filterConfig}
-            availableFields={availableFields}
-            filterValues={filterValues}
-            fetchFieldValues={fetchFieldValues}
-            updateFilter={updateFilter}
-            removeFilter={removeFilter}
-            addFilter={addFilter}
-            resetFilters={handleResetFilters}
-            applyFilters={handleApplyFilters}
-            business={business}
-          />
-        </div>
-      )}
+      {/* Render AdvancedFilters directly */}
+      <div style={{ marginTop: '12px' }}>
+        <AdvancedFilters
+          filters={filters}
+          addFilter={addFilter}
+          removeFilter={removeFilter}
+          updateFilter={updateFilter}
+          business={business}
+        />
+      </div>
       
       <div style={{ marginTop: '20px' }}>
         <LaunchSummaryGrid

@@ -1,19 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Select from 'react-select';
-import {
-  ArrowDownTrayIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  ExternalLinkIcon
-} from '@heroicons/react/24/solid';
-import axios from 'axios';
+import { ArrowDownTrayIcon, FunnelIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import useExportToSheet from './hooks/useExportToSheet';
+import useLaunchSummary from './hooks/useLaunchSummary';
 import buttonStyles from './styles/ReportControls.module.css';
 import formStyles from './styles/formControls.module.css';
 
 const LaunchControl = ({
-  business,
-  setBusiness,
   groupBy,
   setGroupBy,
   days,
@@ -25,19 +18,21 @@ const LaunchControl = ({
   setFilterOpen,
   appliedFilters,
   loading,
-  // Launch date filter props (simplified - only date needed now)
   launchDate,
   setLaunchDate,
-  // Multi-select columns props
   selectedColumns,
   setSelectedColumns,
-  // Period selection props
   selectedPeriods,
   setSelectedPeriods
 }) => {
-  const [availableBusinessCodes, setAvailableBusinessCodes] = useState([]);
   const [columnOptions, setColumnOptions] = useState([]);
+  const [business, setBusiness] = useState('');
   const { exportToGoogleSheet } = useExportToSheet();
+  const { data, loading: fetchingData, error, fetchLaunchSummary } = useLaunchSummary();
+
+  const EXCLUDED_COLUMNS = [
+    'item_id', 'item_name', 'item_type', 'product_type', 'current_stock', 'category', 'sale_discount', 'sale_price'
+  ];
 
   const BUSINESS_CODE_MAP = {
     "ZNG45F8J27LKMNQ": "zing",
@@ -47,7 +42,6 @@ const LaunchControl = ({
     "Authentication": "task_db"
   };
 
-  // Google Sheets mapping
   const BRAND_SHEET_MAP = {
     "PRT9X2C6YBMLV0F": "https://docs.google.com/spreadsheets/d/1q5CAMOxVZnFAowxq9w0bbuX9bEPtwJOa9ERA3wCOReQ/edit?usp=sharing",
     "BEE7W5ND34XQZRM": "https://docs.google.com/spreadsheets/d/1fyzL0TPVWSvQ71-N14AIav9e0qCAqGRu47dhUjA2R44/edit?usp=sharing",
@@ -55,16 +49,120 @@ const LaunchControl = ({
     "ZNG45F8J27LKMNQ": "https://docs.google.com/spreadsheets/d/15Y79kB1STCwCTNJT6dcK-weqazbqQeptXzXcDgJykT8/edit?usp=sharing"
   };
 
-  // Columns to exclude from the dropdown
-  const EXCLUDED_COLUMNS = [
-    'item_id',
-    'item_name', 
-    'item_type',
-    'product_type',
-    'current_stock',
-    'category',
-    'sale_discount',  
-    "sale_price",
+  // Initialize business and listen for changes
+  useEffect(() => {
+    const initializeBusiness = () => {
+      try {
+        const selectedBusiness = localStorage.getItem('selectedBusiness') || '';
+        setBusiness(selectedBusiness);
+      } catch (error) {
+        console.error('Error reading selectedBusiness from localStorage:', error);
+        setBusiness('');
+      }
+    };
+
+    // Initialize on mount
+    initializeBusiness();
+
+    // Listen for storage events (when localStorage changes in other tabs/windows)
+    const handleStorageChange = (e) => {
+      if (e.key === 'selectedBusiness') {
+        setBusiness(e.newValue || '');
+      }
+    };
+
+    // Listen for custom events (for same-tab localStorage changes)
+    const handleBusinessChange = (e) => {
+      if (e.detail && e.detail.business) {
+        setBusiness(e.detail.business);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('businessChanged', handleBusinessChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('businessChanged', handleBusinessChange);
+    };
+  }, []);
+
+  // Get current Google Sheets link based on selected business
+  const currentGoogleSheetLink = useMemo(() => {
+    return business ? BRAND_SHEET_MAP[business] : null;
+  }, [business]);
+
+  const currentBusinessName = useMemo(() => {
+    return business ? BUSINESS_CODE_MAP[business] : '';
+  }, [business]);
+
+  // Load column options when business changes
+  useEffect(() => {
+    const loadColumnOptions = () => {
+      if (!business) {
+        setColumnOptions([]);
+        return;
+      }
+
+      try {
+        const businessData = localStorage.getItem(business);
+
+        if (businessData) {
+          const parsedData = JSON.parse(businessData);
+          
+          if (parsedData && parsedData.columnNames && Array.isArray(parsedData.columnNames)) {
+            // Filter out the excluded columns
+            const filteredColumns = parsedData.columnNames
+              .filter(field => !EXCLUDED_COLUMNS.includes(field.toLowerCase()))
+              .map(field => ({
+                value: field,
+                label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+              }));
+            
+            setColumnOptions(filteredColumns);
+          } else {
+            setColumnOptions([]);
+          }
+        } else {
+          setColumnOptions([]);
+        }
+      } catch (error) {
+        console.error('Error loading column options:', error);
+        setColumnOptions([]);
+      }
+    };
+
+    loadColumnOptions();
+  }, [business]);
+
+  // Find selected column options for multi-select
+  const selectedColumnOptions = useMemo(() => {
+    if (!selectedColumns || selectedColumns.length === 0) return [];
+    return columnOptions.filter(option => selectedColumns.includes(option.value));
+  }, [selectedColumns, columnOptions]);
+
+  // Sort options to show selected ones first for multi-select
+  const sortedColumnOptions = useMemo(() => {
+    if (!columnOptions || columnOptions.length === 0) return [];
+
+    const selected = columnOptions.filter(option => selectedColumns && selectedColumns.includes(option.value));
+    const unselected = columnOptions.filter(option => !selectedColumns || !selectedColumns.includes(option.value));
+
+    return [...selected, ...unselected];
+  }, [columnOptions, selectedColumns]);
+
+  // Group By options
+  const groupByOptions = [
+    { value: 'item_name', label: 'Item Name' },
+    { value: 'item_id', label: 'Item Id' }
+  ];
+
+  // Days options
+  const daysOptions = [
+    { value: '30', label: '30 Days' },
+    { value: '60', label: '60 Days' },
+    { value: '90', label: '90 Days' },
+    { value: '120', label: '120 Days' }
   ];
 
   // Period options for multi-select
@@ -73,153 +171,23 @@ const LaunchControl = ({
     { value: 'second_period', label: 'Second Period' }
   ];
 
-  // Get business options from localStorage - same pattern as GroupbyReportControls
-  const businessOptions = useMemo(() => {
-    try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      const reportrixPermissions = userData.permissions?.reportrix || {};
-      
-      const availableBusinesses = Object.entries(BUSINESS_CODE_MAP)
-        .filter(([code, brandName]) => {
-          return reportrixPermissions[brandName] === true;
-        })
-        .map(([code, brandName]) => ({
-          value: code,
-          label: brandName
-        }));
-
-      return availableBusinesses;
-    } catch (error) {
-      console.error('Error parsing user data from localStorage:', error);
-      return [];
-    }
-  }, []);
-
-  // Get current Google Sheets link based on selected business
-  const currentGoogleSheetLink = useMemo(() => {
-    return business ? BRAND_SHEET_MAP[business] : null;
-  }, [business]);
-
-  // Get current business name for display
-  const currentBusinessName = useMemo(() => {
-    return business ? BUSINESS_CODE_MAP[business] : '';
-  }, [business]);
-
-  // Set available business codes for backward compatibility
-  useEffect(() => {
-    const available = businessOptions.map(opt => ({
-      code: opt.value,
-      brandName: opt.label
-    }));
-    setAvailableBusinessCodes(available);
-    
-    if (!business && available.length > 0) {
-      setBusiness(available[0].code);
-    }
-  }, [businessOptions, business, setBusiness]);
-
-  // Load column options from API
-  useEffect(() => {
-    const fetchColumnOptions = async () => {
-      if (!business) {
-        setColumnOptions([]);
-        return;
-      }
-
-      try {
-        const API_URL = process.env.REACT_APP_API_URL;
-        const response = await axios.get(`${API_URL}/api/filter/available-fields`, {
-          params: { business }, 
-          withCredentials: true, 
-        });
-        
-        if (response.data?.fields) {
-          // Filter out excluded columns and format for dropdown
-          const filteredColumns = response.data.fields
-            .filter(field => !EXCLUDED_COLUMNS.includes(field.toLowerCase()))
-            .map(field => ({
-              value: field,
-              label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-            }));
-          
-          setColumnOptions(filteredColumns);
-        }
-      } catch (error) {
-        console.error('Error fetching column options:', error);
-        setColumnOptions([]);
-      }
-    };
-
-    fetchColumnOptions();
-  }, [business]);
-
-  // Clear launch date, selected columns, and selected periods when business changes
-  useEffect(() => {
-    if (setLaunchDate) {
-      setLaunchDate('');
-    }
-    if (setSelectedColumns) {
-      setSelectedColumns([]);
-    }
-    if (setSelectedPeriods) {
-      setSelectedPeriods([]);
-    }
-  }, [business, setLaunchDate, setSelectedColumns, setSelectedPeriods]);
-
-  // Find selected column options for multi-select
-  const selectedColumnOptions = useMemo(() => {
-    if (!selectedColumns || selectedColumns.length === 0) return [];
-    return columnOptions.filter(option => selectedColumns.includes(option.value));
-  }, [selectedColumns, columnOptions]);
-
-  // Find selected period options for multi-select
-  const selectedPeriodOptions = useMemo(() => {
-    if (!selectedPeriods || selectedPeriods.length === 0) return [];
-    return periodOptions.filter(option => selectedPeriods.includes(option.value));
-  }, [selectedPeriods]);
-
-  // Group By options (convert to Select format)
-  const groupByOptions = [
-    { value: 'item_name', label: 'Item Name' },
-    { value: 'item_id', label: 'Item Id' }
-  ];
-
-  // Days options (convert to Select format)
-  const daysOptions = [
-    { value: '30', label: '30 Days' },
-    { value: '60', label: '60 Days' },
-    { value: '90', label: '90 Days' },
-    { value: '120', label: '120 Days' }
-  ];
-
   // Find selected options for dropdowns
   const selectedGroupByOption = groupByOptions.find(option => option.value === groupBy) || null;
   const selectedDaysOption = daysOptions.find(option => option.value === days) || null;
+  const selectedPeriodOptions = periodOptions.filter(option => 
+    selectedPeriods && selectedPeriods.includes(option.value)
+  );
 
   // Calculate filter count including launch date filter
   const baseFilterCount = Object.keys(appliedFilters || {}).length;
   const launchDateFilterActive = launchDate ? 1 : 0;
   const totalFilterCount = baseFilterCount + launchDateFilterActive;
 
-  // Sort options to show selected ones first for multi-select
-  const sortedColumnOptions = useMemo(() => {
-    if (!columnOptions) return [];
-    
-    const selected = columnOptions.filter(option => 
-      selectedColumns.includes(option.value)
-    );
-    const unselected = columnOptions.filter(option => 
-      !selectedColumns.includes(option.value)
-    );
-    
-    return [...selected, ...unselected];
-  }, [columnOptions, selectedColumns]);
-
-  // Custom MultiValue component using global styles
+  // Custom MultiValue component
   const CustomMultiValue = ({ data, removeProps, selectProps }) => {
     const allValues = selectProps.value || [];
     const currentIndex = allValues.findIndex(item => item.value === data.value);
-    
+
     if (currentIndex === 0 && allValues.length > 1) {
       return (
         <div className={buttonStyles.multiValue}>
@@ -252,7 +220,7 @@ const LaunchControl = ({
         </div>
       );
     }
-    
+
     return null;
   };
 
@@ -270,27 +238,40 @@ const LaunchControl = ({
     </svg>
   );
 
+  const handleFetch = () => {
+    const business = localStorage.getItem('selectedBusiness');
+
+    if (!business) {
+      console.error('No business selected in localStorage');
+      return;
+    }
+
+    console.log('Triggering API call with business:', business);
+
+    fetchLaunchSummary({
+      days,
+      groupBy,
+      business,
+      itemFilter: {},
+      variationColumns: [],
+      launchDateFilter: null,
+      calculate_first_period: true,
+      calculate_second_period: true
+    });
+  };
+
   return (
     <div className={formStyles.container}>
       <div className={formStyles.formContainer}>
-        {/* Single Input Row */}
-        <div style={styles.inputRow}>
-          <div style={styles.inputGroup}>
-            <label className={formStyles.label}>Business</label>
-            <select
-              value={business}
-              onChange={(e) => setBusiness(e.target.value)}
-              className={formStyles.select}
-            >
-              <option value="">Select Business</option>
-              {businessOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+        {/* Business Display */}
+        {currentBusinessName && (
+          <div style={{ marginBottom: '16px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+            <span className={formStyles.label}>Business: </span>
+            <span style={{ fontWeight: '600', color: '#374151' }}>{currentBusinessName}</span>
           </div>
+        )}
 
+        <div style={styles.inputRow}>
           <div style={styles.inputGroup}>
             <label className={formStyles.label}>Group By</label>
             <Select
@@ -330,36 +311,9 @@ const LaunchControl = ({
             />
           </div>
 
-          <div style={{ ...styles.inputGroup, flex: 1.5 }}>
+          <div style={styles.inputGroup}>
             <div style={styles.labelWithBadge}>
-              <label className={formStyles.label}>Choose Extra Columns</label>
-              {selectedColumns && selectedColumns.length > 0 && (
-                <span className={buttonStyles.badge}>{selectedColumns.length}</span>
-              )}
-            </div>
-            <Select
-              options={sortedColumnOptions}
-              value={selectedColumnOptions}
-              onChange={(selected) => {
-                const values = selected ? selected.map(option => option.value) : [];
-                setSelectedColumns && setSelectedColumns(values);
-              }}
-              isDisabled={!business || columnOptions.length === 0}
-              placeholder="Select Columns"
-              isClearable
-              isMulti={true}
-              closeMenuOnSelect={false}
-              hideSelectedOptions={false}
-              components={{ MultiValue: CustomMultiValue }}
-              styles={customSelectStyles}
-              menuPlacement="auto"
-              menuPosition="fixed"
-            />
-          </div>
-
-          <div style={{ ...styles.inputGroup, flex: 1.2 }}>
-            <div style={styles.labelWithBadge}>
-              <label className={formStyles.label}>Periods</label>
+              <label className={formStyles.label}>Period Selection</label>
               {selectedPeriods && selectedPeriods.length > 0 && (
                 <span className={buttonStyles.badge}>{selectedPeriods.length}</span>
               )}
@@ -382,17 +336,52 @@ const LaunchControl = ({
               menuPosition="fixed"
             />
           </div>
+
+          <div style={{ ...styles.inputGroup, flex: 2 }}>
+            <div style={styles.labelWithBadge}>
+              <label className={formStyles.label}>Choose Extra Columns (Multi-select)</label>
+              {selectedColumns && selectedColumns.length > 0 && (
+                <span className={buttonStyles.badge}>{selectedColumns.length}</span>
+              )}
+            </div>
+            <Select
+              options={sortedColumnOptions}
+              value={selectedColumnOptions}
+              onChange={(selected) => {
+                const values = selected ? selected.map(option => option.value) : [];
+                setSelectedColumns && setSelectedColumns(values);
+              }}
+              isDisabled={!business || columnOptions.length === 0}
+              placeholder={
+                !business 
+                  ? "No business selected" 
+                  : columnOptions.length === 0 
+                    ? "No columns available - loading..." 
+                    : "Select Columns"
+              }
+              isClearable
+              isMulti={true}
+              closeMenuOnSelect={false}
+              hideSelectedOptions={false}
+              components={{ MultiValue: CustomMultiValue }}
+              styles={customSelectStyles}
+              menuPlacement="auto"
+              menuPosition="fixed"
+            />
+          </div>
         </div>
 
-        {/* Buttons */}
         <div style={styles.buttonRow}>
           <div style={styles.leftButtons}>
             <button
               onClick={() => setFilterOpen(!filterOpen)}
               className={buttonStyles.advancedButton}
+              disabled={!business}
               style={{
                 backgroundColor: filterOpen ? '#374151' : '#ffffff',
                 color: filterOpen ? '#ffffff' : '#374151',
+                opacity: !business ? 0.5 : 1,
+                cursor: !business ? 'not-allowed' : 'pointer'
               }}
             >
               <FunnelIcon className={buttonStyles.icon} />
@@ -405,7 +394,10 @@ const LaunchControl = ({
 
           <div style={styles.rightButtons}>
             <button
-              onClick={fetchData}
+              onClick={() => {
+                console.log('Fetch button in LaunchControl clicked!');
+                fetchData();
+              }}
               className={`${buttonStyles.button} ${buttonStyles.primary} ${loading ? buttonStyles.disabled : ''}`}
               disabled={loading}
             >
@@ -458,69 +450,6 @@ const LaunchControl = ({
   );
 };
 
-// Styles - updated to position Google Sheets icon next to button
-const styles = {
-  inputRow: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '10px',
-    marginBottom: '10px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    minWidth: '160px',
-    flex: 1,
-  },
-  labelWithBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  buttonRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '12px',
-    paddingTop: '16px',
-    borderTop: '1px solid #e5e7eb',
-  },
-  leftButtons: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-  },
-  rightButtons: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-    marginLeft: 'auto',
-  },
-  exportSheetContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px', // Space between button and icon
-  },
-  sheetIconLink: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '32px',
-    height: '32px',
-    borderRadius: '6px',
-    backgroundColor: '#f8f9fa',
-    border: '1px solid #e1e5e9',
-    textDecoration: 'none',
-    transition: 'all 0.2s ease',
-    cursor: 'pointer',
-    '&:hover': {
-      backgroundColor: '#e9ecef',
-      borderColor: '#0F9D58',
-    },
-  },
-};
-
 // Custom styles for react-select - same as GroupbyReportControls
 const customSelectStyles = {
   control: (base, state) => ({
@@ -545,7 +474,7 @@ const customSelectStyles = {
   indicatorSeparator: () => ({
     display: 'none',
   }),
-  
+
   dropdownIndicator: (base, state) => ({
     ...base,
     padding: '0 8px',
@@ -634,6 +563,69 @@ const customSelectStyles = {
       backgroundColor: state.isSelected ? '#2563eb' : '#f1f5f9',
     },
   }),
+};
+
+// Styles - updated to position Google Sheets icon next to button
+const styles = {
+  inputRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+    marginBottom: '10px',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: '160px',
+    flex: 1,
+  },
+  labelWithBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  buttonRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '12px',
+    paddingTop: '16px',
+    borderTop: '1px solid #e5e7eb',
+  },
+  leftButtons: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  rightButtons: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+    marginLeft: 'auto',
+  },
+  exportSheetContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px', // Space between button and icon
+  },
+  sheetIconLink: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    borderRadius: '6px',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #e1e5e9',
+    textDecoration: 'none',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: '#e9ecef',
+      borderColor: '#0F9D58',
+    },
+  },
 };
 
 export default LaunchControl;

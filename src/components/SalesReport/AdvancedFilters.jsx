@@ -10,7 +10,7 @@ import {
 
 const AdvancedFilters = ({
   filterConfig,
-  availableFields,
+  availableFields: propAvailableFields, // Rename to avoid confusion
   fetchFieldValues,
   updateFilter,
   removeFilter,
@@ -20,6 +20,70 @@ const AdvancedFilters = ({
 }) => {
   const selectRefs = useRef({});
   const [optionCache, setOptionCache] = useState({});
+  const [availableFields, setAvailableFields] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load field names from localStorage based on selected business
+  useEffect(() => {
+    const loadFieldNamesFromStorage = () => {
+      try {
+        setLoading(true);
+        
+        // Get selected business from localStorage
+        const selectedBusiness = localStorage.getItem('selectedBusiness');
+        
+        if (!selectedBusiness) {
+          console.warn('No selected business found in localStorage');
+          setAvailableFields(propAvailableFields || []);
+          setLoading(false);
+          return;
+        }
+
+        // Get the business data from localStorage using the selected business as key
+        const businessDataKey = selectedBusiness;
+        const businessData = localStorage.getItem(businessDataKey);
+        
+        if (!businessData) {
+          console.warn(`No data found for business: ${selectedBusiness}`);
+          setAvailableFields(propAvailableFields || []);
+          setLoading(false);
+          return;
+        }
+
+        // Parse the business data
+        const parsedBusinessData = JSON.parse(businessData);
+        
+        // Extract field names from the business data
+        // Assuming the structure has fieldNames as a key with array values
+        const fieldNames = parsedBusinessData.fieldNames || [];
+        
+        console.log('Loaded field names from localStorage:', fieldNames);
+        setAvailableFields(fieldNames);
+        
+      } catch (error) {
+        console.error('Error loading field names from localStorage:', error);
+        // Fallback to prop-based available fields
+        setAvailableFields(propAvailableFields || []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFieldNamesFromStorage();
+
+    // Optional: Listen for storage changes to update fields when selectedBusiness changes
+    const handleStorageChange = (e) => {
+      if (e.key === 'selectedBusiness') {
+        loadFieldNamesFromStorage();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [propAvailableFields]);
 
   // Define field types and their corresponding operators
   const fieldTypes = {
@@ -57,6 +121,9 @@ const AdvancedFilters = ({
 
   useEffect(() => {
     const loadMissingOptions = async () => {
+      // Add null check for filterConfig
+      if (!filterConfig || !Array.isArray(filterConfig)) return;
+      
       for (const filter of filterConfig) {
         if (filter.field && !optionCache[filter.field] && !fieldTypes[filter.field]) {
           try {
@@ -100,22 +167,23 @@ const AdvancedFilters = ({
   };
 
   const handleValueChange = (index, newValue, valueIndex = null) => {
-  const filter = filterConfig[index];
+    // Add null check for filterConfig
+    if (!filterConfig || !filterConfig[index]) return;
+    
+    const filter = filterConfig[index];
 
-  if (filter.operator === 'Between' && valueIndex !== null) {
-    const currentValue = Array.isArray(filter.value) && filter.value.length === 2
-      ? [...filter.value]
-      : ['', ''];
-    currentValue[valueIndex] = newValue;
-    console.log('Sending Between value to updateFilter:', currentValue);
-    updateFilter(index, 'value', currentValue);
-  } else {
-    console.log('Sending single value to updateFilter:', newValue);
-    updateFilter(index, 'value', newValue);
-  }
-};
-
-
+    if (filter.operator === 'Between' && valueIndex !== null) {
+      const currentValue = Array.isArray(filter.value) && filter.value.length === 2
+        ? [...filter.value]
+        : ['', ''];
+      currentValue[valueIndex] = newValue;
+      console.log('Sending Between value to updateFilter:', currentValue);
+      updateFilter(index, 'value', currentValue);
+    } else {
+      console.log('Sending single value to updateFilter:', newValue);
+      updateFilter(index, 'value', newValue);
+    }
+  };
 
   const renderValueInput = (filter, index) => {
     const fieldType = fieldTypes[filter.field];
@@ -277,6 +345,41 @@ const AdvancedFilters = ({
       boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.4)'
     }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h3 style={styles.title}>Advanced Filters</h3>
+          <div>Loading field names...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Add null checks for props
+  if (!availableFields || !Array.isArray(availableFields) || availableFields.length === 0) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h3 style={styles.title}>Advanced Filters</h3>
+          <div>No field names available. Please select a business first.</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!filterConfig || !Array.isArray(filterConfig)) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h3 style={styles.title}>Advanced Filters</h3>
+          <div>Loading filters...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>

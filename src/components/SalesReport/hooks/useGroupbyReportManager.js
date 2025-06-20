@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import useFilterManagement from './useFilterManagement';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -15,27 +14,15 @@ const useGroupbyReportManager = () => {
   const [selectedFields, setSelectedFields] = useState([]);
   const [availableColumns, setAvailableColumns] = useState([]);
 
-  const {
-    filterOpen,
-    setFilterOpen,
-    availableFields,
-    filterConfig,
-    filterValues,
-    appliedFilters,
-    addFilter,
-    updateFilter,
-    removeFilter,
-    resetFilters,
-    applyFilters,
-    fetchAvailableFields,
-    fetchFieldValues,
-    getFilterParams,
-  } = useFilterManagement(business);
+  // Filter-related state
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [availableFields, setAvailableFields] = useState([]);
+  const [filterConfig, setFilterConfig] = useState([]);
+  const [filterValues, setFilterValues] = useState({});
+  const [appliedFilters, setAppliedFilters] = useState({});
 
   const fetchGroupbyData = useCallback(async (externalPayload = null) => {
-    const filterParams = getFilterParams() || {};
-
-    // Optional external payload (e.g., from GroupbyAggregationPage)
+    // Use local filters state or allow external override
     const payload = externalPayload || {
       business,
       startDate,
@@ -51,7 +38,7 @@ const useGroupbyReportManager = () => {
       endDate: end,
       groupbyFields: groupby,
       selectedFields: selected,
-      filters,
+      filters: filterVals,
     } = payload;
 
     if (!biz) {
@@ -67,16 +54,18 @@ const useGroupbyReportManager = () => {
 
     if (start) params.Start_Date = start;
     if (end) params.End_Date = end;
-    if (filters && Object.keys(filters).length > 0) {
-    params.item_filter = JSON.stringify(filters);}
-
+    if (filterVals && Object.keys(filterVals).length > 0) {
+      params.item_filter = JSON.stringify(filterVals);
+    }
 
     console.log('Fetching with params:', params);
 
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/api/groupby-summary`, { params ,
-         withCredentials: true });
+      const res = await axios.get(`${API_URL}/api/groupby-summary`, { 
+        params,
+        withCredentials: true 
+      });
       const data = res.data?.data || [];
       setRowData(data);
     } catch (err) {
@@ -85,8 +74,87 @@ const useGroupbyReportManager = () => {
     } finally {
       setLoading(false);
     }
-  }, [business, startDate, endDate, groupbyFields, selectedFields, getFilterParams]);
-  // Always use fetchFieldValues from useFilterManagement (manualFetchFieldValues does not exist here)
+  }, [business, startDate, endDate, groupbyFields, selectedFields, appliedFilters]);
+
+  // Filter management functions
+  const addFilter = useCallback(() => {
+    const newFilter = {
+      id: Date.now(),
+      field: '',
+      operator: 'equals',
+      value: '',
+      values: []
+    };
+    setFilterConfig(prev => [...prev, newFilter]);
+  }, []);
+
+  const updateFilter = useCallback((id, updates) => {
+    setFilterConfig(prev => 
+      prev.map(filter => 
+        filter.id === id ? { ...filter, ...updates } : filter
+      )
+    );
+  }, []);
+
+  const removeFilter = useCallback((id) => {
+    setFilterConfig(prev => prev.filter(filter => filter.id !== id));
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFilterConfig([]);
+    setFilterValues({});
+    setAppliedFilters({});
+  }, []);
+
+  const applyFilters = useCallback(() => {
+    // Convert filterConfig to the format expected by the API
+    const applied = {};
+    
+    filterConfig.forEach(filter => {
+      if (filter.field && (filter.value || (filter.values && filter.values.length > 0))) {
+        applied[filter.field] = {
+          operator: filter.operator,
+          value: filter.operator === 'in' ? filter.values : filter.value
+        };
+      }
+    });
+
+    setAppliedFilters(applied);
+    return applied;
+  }, [filterConfig]);
+
+  const fetchFieldValues = useCallback(async (fieldName) => {
+    if (!business || !fieldName) return [];
+    
+    try {
+      // This is a placeholder - replace with your actual API call
+      const response = await axios.get(`${API_URL}/api/field-values`, {
+        params: { business, field: fieldName },
+        withCredentials: true
+      });
+      return response.data?.values || [];
+    } catch (error) {
+      console.error('Error fetching field values:', error);
+      return [];
+    }
+  }, [business]);
+
+  const fetchAvailableFields = useCallback(async () => {
+    if (!business) return;
+    
+    try {
+      // This is a placeholder - replace with your actual API call
+      const response = await axios.get(`${API_URL}/api/available-fields`, {
+        params: { business },
+        withCredentials: true
+      });
+      setAvailableFields(response.data?.fields || []);
+    } catch (error) {
+      console.error('Error fetching available fields:', error);
+      setAvailableFields([]);
+    }
+  }, [business]);
+
   return {
     startDate, setStartDate,
     endDate, setEndDate,
@@ -94,6 +162,9 @@ const useGroupbyReportManager = () => {
     groupbyFields, setGroupbyFields,
     selectedFields, setSelectedFields,
     rowData, fetchGroupbyData, loading,
+    availableColumns,
+    
+    // Filter-related exports
     filterOpen, setFilterOpen,
     availableFields,
     filterConfig,
@@ -104,10 +175,8 @@ const useGroupbyReportManager = () => {
     removeFilter,
     resetFilters,
     applyFilters,
-    fetchFieldValues, // ensure this is the one from useFilterManagement
-    fetchAvailableFields,
-    getFilterParams,
-    availableColumns
+    fetchFieldValues,
+    fetchAvailableFields
   };
 };
 

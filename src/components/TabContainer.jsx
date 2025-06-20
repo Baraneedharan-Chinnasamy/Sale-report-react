@@ -3,22 +3,35 @@ import SalesReportGrid from './SalesReport/SalesReportGrid';
 import GroupbyAggregationPage from './SalesReport/GroupbyAggregationPage';
 import useLogout from './SalesReport/hooks/useLogout';
 import LaunchSummary from './SalesReport/LaunchSummary';
+import useColumnsAndFields from './SalesReport/hooks/useColumnsAndFields';
+import './TabContainer.css';
 
 import {
   Bars3Icon,
   ChartBarSquareIcon,
   Squares2X2Icon,
   ArrowRightOnRectangleIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/solid';
 
-const GroupByTab = () => <GroupbyAggregationPage />;
+const BUSINESS_CODE_MAP = {
+  "ZNG45F8J27LKMNQ": "zing",
+  "PRT9X2C6YBMLV0F": "prathiksham",
+  "BEE7W5ND34XQZRM": "beelittle",
+  "ADBXOUERJVK038L": "adoreaboo",
+  "Authentication": "task_db"
+};
+
+const GroupByTab = ({ selectedBusiness }) => <GroupbyAggregationPage selectedBusiness={selectedBusiness} />;
 
 const TabContainer = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('sales');
   const [collapsed, setCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [user, setUser] = useState(null);
+  const [selectedBusiness, setSelectedBusiness] = useState('');
+  const [showBusinessDropdown, setShowBusinessDropdown] = useState(false);
   const { logout } = useLogout();
 
   // Load user data on component mount and set up listener for localStorage changes
@@ -33,6 +46,19 @@ const TabContainer = ({ onLogout }) => {
           console.log('Parsed user data:', userData);
           console.log('Available keys in user object:', Object.keys(userData));
           setUser(userData);
+          
+          // Set default business if available
+          if (userData.permissions?.reportrix && userData.permissions.reportrix.length > 0) {
+            // Check if there's a previously selected business in localStorage
+            const savedBusiness = localStorage.getItem('selectedBusiness');
+            if (savedBusiness && userData.permissions.reportrix.includes(savedBusiness)) {
+              setSelectedBusiness(savedBusiness);
+            } else {
+              // Set first business as default
+              setSelectedBusiness(userData.permissions.reportrix[0]);
+              localStorage.setItem('selectedBusiness', userData.permissions.reportrix[0]);
+            }
+          }
         }
       } catch (error) {
         console.error('Error parsing user data from localStorage:', error);
@@ -53,12 +79,34 @@ const TabContainer = ({ onLogout }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Close dropdown when sidebar collapses
+  useEffect(() => {
+    if (collapsed && !isHovered) {
+      setShowBusinessDropdown(false);
+    }
+  }, [collapsed, isHovered]);
+
+  // Handle business selection
+  const handleBusinessSelect = (business) => {
+    setSelectedBusiness(business);
+    localStorage.setItem('selectedBusiness', business);
+    setShowBusinessDropdown(false);
+    console.log('Selected business:', business);
+  };
+
+  // Get available businesses from user permissions
+  const getAvailableBusinesses = () => {
+    return user?.permissions?.reportrix || [];
+  };
+
   const handleLogout = async () => {
     try {
       const result = await logout();
       
       if (!result.error) {
         console.log('Logout successful');
+        // Clear selected business on logout
+        localStorage.removeItem('selectedBusiness');
         onLogout();
       } else {
         console.error('Logout error:', result.error);
@@ -74,11 +122,11 @@ const TabContainer = ({ onLogout }) => {
     
     // Check different possible username fields
     return user.username || 
-           user.userName || 
-           user.name || 
-           user.displayName || 
-           user.email?.split('@')[0] || 
-           'User';
+          user.userName || 
+          user.name || 
+          user.displayName || 
+          user.email?.split('@')[0] || 
+          'User';
   };
 
   // Function to get avatar initial
@@ -87,26 +135,56 @@ const TabContainer = ({ onLogout }) => {
     return displayName.charAt(0).toUpperCase();
   };
 
+  // Function to get business initial
+  const getBusinessInitial = (business) => {
+    return business ? business.charAt(0).toUpperCase() : 'B';
+  };
+
   // Determine if sidebar should be shown as expanded
   const shouldShowExpanded = !collapsed || isHovered;
 
+  // Capitalize business name for display
+  const formatBusinessName = (business) => {
+    return business.charAt(0).toUpperCase() + business.slice(1);
+  };
+
+  // Find the business code for the selected business name
+  const selectedBusinessCode = Object.keys(BUSINESS_CODE_MAP).find(
+    code => BUSINESS_CODE_MAP[code] === selectedBusiness
+  );
+
+  // Use the hook with the business code
+  const {
+    fieldNames,
+    fetchColumnsAndFields,
+    loading: fieldsLoading,
+    error: fieldsError
+  } = useColumnsAndFields(selectedBusinessCode);
+
+  // Fetch and store fields when business changes
+  useEffect(() => {
+    if (selectedBusinessCode) {
+      fetchColumnsAndFields().then((data) => {
+        if (data && data.fieldNames) {
+          localStorage.setItem(`${selectedBusiness}`, JSON.stringify(data));
+        }
+      });
+    }
+  }, [selectedBusinessCode, selectedBusiness, fetchColumnsAndFields]);
+
   return (
-    <div style={styles.container}>
+    <div className="tab-container">
       <aside 
-        style={{
-          ...styles.sidebar,
-          ...(collapsed && !isHovered ? styles.sidebarCollapsed : {}),
-          ...(collapsed && isHovered ? styles.sidebarHovered : {})
-        }}
+        className={`sidebar ${collapsed && !isHovered ? 'sidebar-collapsed' : ''} ${collapsed && isHovered ? 'sidebar-hovered' : ''}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div style={styles.sidebarHeader}>
+        <div className="sidebar-header">
           {shouldShowExpanded && (
-            <h2 style={styles.logo}>Dashboard</h2>
+            <h2 className="logo">Dashboard</h2>
           )}
           <button
-            style={styles.toggleButton}
+            className="toggle-button"
             onClick={() => setCollapsed(!collapsed)}
             title="Toggle Sidebar"
           >
@@ -114,335 +192,157 @@ const TabContainer = ({ onLogout }) => {
           </button>
         </div>
 
-        <nav style={styles.nav}>
+        {/* Business Selector */}
+        {getAvailableBusinesses().length > 0 && (
+          <div className="business-selector">
+            {shouldShowExpanded ? (
+              <div className="business-dropdown-container">
+                <label className="business-label">Select Business</label>
+                <div className="dropdown-wrapper">
+                  <button
+                    className="business-dropdown-button"
+                    onClick={() => setShowBusinessDropdown(!showBusinessDropdown)}
+                  >
+                    <div className="business-dropdown-content">
+                      <span className="business-text">
+                        {formatBusinessName(selectedBusiness)}
+                      </span>
+                    </div>
+                    <ChevronDownIcon 
+                      className={`chevron-icon ${showBusinessDropdown ? 'chevron-rotated' : ''}`}
+                    />
+                  </button>
+                  
+                  {showBusinessDropdown && (
+                    <div className="business-dropdown-menu">
+                      {getAvailableBusinesses().map((business) => (
+                        <button
+                          key={business}
+                          className={`business-dropdown-item ${business === selectedBusiness ? 'selected-business-item' : ''}`}
+                          onClick={() => handleBusinessSelect(business)}
+                        >
+                          <span>{formatBusinessName(business)}</span>
+                          {business === selectedBusiness && (
+                            <div className="selected-indicator">✓</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="collapsed-business-selector">
+                <button
+                  className="collapsed-business-button"
+                  onClick={() => setShowBusinessDropdown(!showBusinessDropdown)}
+                  title={`Selected: ${formatBusinessName(selectedBusiness)}`}
+                >
+                  <span className="business-initial-text">
+                    {getBusinessInitial(selectedBusiness)}
+                  </span>
+                </button>
+                
+                {showBusinessDropdown && (
+                  <div className="collapsed-business-dropdown">
+                    {getAvailableBusinesses().map((business) => (
+                      <button
+                        key={business}
+                        className={`collapsed-business-item ${business === selectedBusiness ? 'selected-collapsed-item' : ''}`}
+                        onClick={() => handleBusinessSelect(business)}
+                        title={formatBusinessName(business)}
+                      >
+                        <span className="business-initial-icon">
+                          {getBusinessInitial(business)}
+                        </span>
+                        <span className="collapsed-business-text">
+                          {formatBusinessName(business)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <nav className="nav">
           <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'sales' ? styles.activeTab : {}),
-              ...(!shouldShowExpanded ? styles.collapsedButton : {})
-            }}
+            className={`tab-button ${activeTab === 'sales' ? 'active-tab' : ''} ${!shouldShowExpanded ? 'collapsed-button' : ''}`}
             onClick={() => setActiveTab('sales')}
             title={!shouldShowExpanded ? "Sales Report" : ""}
           >
-            <div style={activeTab === 'sales' ? styles.activeIconContainer : styles.iconContainer}>
-              <ChartBarSquareIcon style={{
-                ...styles.icon,
-                color: activeTab === 'sales' ? '#FFFFFF' : '#6B6B6B'
-              }} />
+            <div className={activeTab === 'sales' ? 'active-icon-container' : 'icon-container'}>
+              <ChartBarSquareIcon className="icon" style={{ color: '#6B6B6B' }} />
             </div>
-            {shouldShowExpanded && <span style={styles.tabText}>Sales Report</span>}
+            {shouldShowExpanded && <span className="tab-text">Sales Report</span>}
           </button>
 
           <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'group' ? styles.activeTab : {}),
-              ...(!shouldShowExpanded ? styles.collapsedButton : {})
-            }}
+            className={`tab-button ${activeTab === 'group' ? 'active-tab' : ''} ${!shouldShowExpanded ? 'collapsed-button' : ''}`}
             onClick={() => setActiveTab('group')}
             title={!shouldShowExpanded ? "Automated Group By" : ""}
           >
-            <div style={activeTab === 'group' ? styles.activeIconContainer : styles.iconContainer}>
-              <Squares2X2Icon style={{
-                ...styles.icon,
-                color: activeTab === 'group' ? '#FFFFFF' : '#6B6B6B'
-              }} />
+            <div className={activeTab === 'group' ? 'active-icon-container' : 'icon-container'}>
+              <Squares2X2Icon className="icon" style={{ color: '#6B6B6B' }} />
             </div>
-            {shouldShowExpanded && <span style={styles.tabText}>Automated Group By</span>}
+            {shouldShowExpanded && <span className="tab-text">Automated Group By</span>}
           </button>
 
           <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'launch' ? styles.activeTab : {}),
-              ...(!shouldShowExpanded ? styles.collapsedButton : {})
-            }}
+            className={`tab-button ${activeTab === 'launch' ? 'active-tab' : ''} ${!shouldShowExpanded ? 'collapsed-button' : ''}`}
             onClick={() => setActiveTab('launch')}
             title={!shouldShowExpanded ? "Launch Summary" : ""}
           >
-            <div style={activeTab === 'launch' ? styles.activeIconContainer : styles.iconContainer}>
-              <RocketLaunchIcon style={{
-                ...styles.icon,
-                color: activeTab === 'launch' ? '#FFFFFF' : '#6B6B6B'
-              }} />
+            <div className={activeTab === 'launch' ? 'active-icon-container' : 'icon-container'}>
+              <RocketLaunchIcon className="icon" style={{ color: '#6B6B6B' }} />
             </div>
-            {shouldShowExpanded && <span style={styles.tabText}>Launch Summary</span>}
+            {shouldShowExpanded && <span className="tab-text">Launch Summary</span>}
           </button>
         </nav>
 
-        <div style={styles.userSection}>
+        <div className="user-section">
           {user && shouldShowExpanded && (
-            <div style={styles.userInfo}>
-              <div style={styles.userAvatar}>
+            <div className="user-info">
+              <div className="user-avatar">
                 {getAvatarInitial()}
               </div>
-              <div style={styles.userDetails}>
-                <span style={styles.userName}>
+              <div className="user-details">
+                <span className="user-name">
                   {getDisplayName()}
                 </span>
-                <span style={styles.userRole}>Administrator</span>
+                <span className="user-role">Administrator</span>
               </div>
             </div>
           )}
           
           <button
-            style={{
-              ...styles.logoutButton,
-              ...(!shouldShowExpanded ? styles.collapsedLogoutButton : {})
-            }}
+            className={`logout-button ${!shouldShowExpanded ? 'collapsed-logout-button' : ''}`}
             onClick={handleLogout}
             title="Logout"
           >
-            <div style={styles.logoutIconContainer}>
-              <ArrowRightOnRectangleIcon style={{
-                ...styles.icon,
-                color: '#DC2626'
-              }} />
+            <div className="logout-icon-container">
+              <ArrowRightOnRectangleIcon className="icon" style={{ color: '#DC2626' }} />
             </div>
-            {shouldShowExpanded && <span style={styles.logoutText}>Logout</span>}
+            {shouldShowExpanded && <span className="logout-text">Logout</span>}
           </button>
         </div>
       </aside>
 
-      <main style={{
-        ...styles.mainContent,
-        marginLeft: collapsed ? '80px' : '280px'
-      }}>
-        <div style={{ display: activeTab === 'launch' ? 'block' : 'none', height: '100%' }}>
-          <LaunchSummary />
+      <main className={`main-content ${!collapsed ? 'main-content-expanded' : ''}`}>
+        <div className={activeTab === 'launch' ? 'content-visible' : 'content-hidden'}>
+          <LaunchSummary selectedBusiness={selectedBusiness} />
         </div>
-        <div style={{ display: activeTab === 'sales' ? 'block' : 'none', height: '100%' }}>
-          <SalesReportGrid />
+        <div className={activeTab === 'sales' ? 'content-visible' : 'content-hidden'}>
+          <SalesReportGrid selectedBusiness={selectedBusiness} />
         </div>
-        <div style={{ display: activeTab === 'group' ? 'block' : 'none', height: '100%' }}>
-          <GroupByTab />
+        <div className={activeTab === 'group' ? 'content-visible' : 'content-hidden'}>
+          <GroupByTab selectedBusiness={selectedBusiness} />
         </div>
       </main>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    display: 'flex',
-    height: '100vh',
-    backgroundColor: '#f8fafc',
-    position: 'relative'
-  },
-  sidebar: {
-    position: 'fixed',
-    left: 0,
-    top: 0,
-    height: '100vh',
-    width: '280px',
-    background: 'linear-gradient(180deg, #FAFAF8 0%, #F5F5F2 100%)',
-    color: '#4E4B4B',
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '0',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxShadow: '4px 0 20px rgba(0, 0, 0, 0.08)',
-    borderRight: '1px solid #E8E6E0',
-    zIndex: 1000
-  },
-  sidebarCollapsed: {
-    width: '80px'
-  },
-  sidebarHovered: {
-    width: '280px',
-    boxShadow: '4px 0 30px rgba(0, 0, 0, 0.15)'
-  },
-  sidebarHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '24px 20px',
-    borderBottom: '1px solid #E8E6E0',
-    background: 'linear-gradient(135deg, #FFFFFF 0%, #F8F8F5 100%)'
-  },
-  logoContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  logoIcon: {
-    fontSize: '24px',
-    background: 'transparent',
-    borderRadius: '8px',
-    width: '36px',
-    height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: 'transparent'
-  },
-  logo: {
-    fontSize: '20px',
-    fontWeight: '700',
-    color: '#4E4B4B',
-    margin: 0,
-    letterSpacing: '-0.5px'
-  },
-  toggleButton: {
-    backgroundColor: '#f8fafc',
-    color: '#5A5751',
-    cursor: 'pointer',
-    padding: '8px',
-    borderRadius: '8px',
-    transition: 'all 0.2s ease',
-    border: 'none'
-  },
-  nav: {
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '20px 16px',
-    gap: '8px',
-    flex: 1
-  },
-  tabButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '0',
-    backgroundColor: '#f8fafc',
-    borderRadius: '12px',
-    fontSize: '15px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    textAlign: 'left',
-    position: 'relative',
-    overflow: 'hidden',
-    border: 'none'
-  },
-  collapsedButton: {
-    justifyContent: 'center',
-    gap: 0
-  },
-  activeTab: {
-    backgroundColor: '#343434',
-    color: '#FFFFFF',
-    fontWeight: '600'
-  },
-  iconContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '48px',
-    height: '35px',
-    borderRadius: '10px',
-    background: '#f8fafc',
-    transition: 'all 0.2s ease'
-  },
-  activeIconContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '48px',
-    height: '35px',
-    borderRadius: '10px',
-    background: '#343434',
-    backdropFilter: 'blur(10px)'
-  },
-  icon: {
-    width: 20,
-    height: 20,
-    flexShrink: 0
-  },
-  tabText: {
-    flex: 1,
-    fontSize: '15px',
-    fontWeight: 'inherit',
-    color: 'inherit'
-  },
-  userSection: {
-    marginTop: 'auto',
-    padding: '20px',
-    borderTop: '1px solid #E8E6E0',
-    background: 'linear-gradient(135deg, #FFFFFF 0%, #F8F8F5 100%)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px'
-  },
-  userInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '12px',
-    background: 'linear-gradient(135deg, #F8F8F5 0%, #F0F0ED 100%)',
-    borderRadius: '12px',
-    border: '1px solid #E8E6E0'
-  },
-  userAvatar: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#FFFFFF',
-    fontSize: '14px',
-    fontWeight: '600',
-    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-  },
-  userDetails: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px'
-  },
-  userName: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#2D2A26',
-    lineHeight: '1.2'
-  },
-  userRole: {
-    fontSize: '12px',
-    color: '#6B6B6B',
-    lineHeight: '1.2'
-  },
-  logoutButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '0',
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderRadius: '12px',
-    fontSize: '15px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    textAlign: 'left'
-  },
-  collapsedLogoutButton: {
-    justifyContent: 'center',
-    gap: 0
-  },
-  logoutIconContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '48px',
-    height: '35px',
-    borderRadius: '10px',
-    background: 'transparent',
-    transition: 'all 0.2s ease'
-  },
-  logoutText: {
-    flex: 1,
-    fontSize: '15px',
-    fontWeight: '500',
-    color: '#DC2626'
-  },
-  mainContent: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '24px',
-    backgroundColor: '#FAFBFC',
-    transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    marginLeft: '80px' // Default collapsed state
-  }
 };
 
 export default TabContainer;

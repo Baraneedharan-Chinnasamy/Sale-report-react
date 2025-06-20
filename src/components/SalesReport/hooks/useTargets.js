@@ -3,14 +3,28 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-const useTargets = (businessName) => {
+const BUSINESS_CODE_MAP = {
+  "ZNG45F8J27LKMNQ": "zing",
+  "PRT9X2C6YBMLV0F": "prathiksham",
+  "BEE7W5ND34XQZRM": "beelittle",
+  "ADBXOUERJVK038L": "adoreaboo",
+  "Authentication": "task_db"
+};
+
+const useTargets = () => {
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch all targets for a business
+  // Load the business name directly from localStorage
+  const businessName = localStorage.getItem('selectedBusiness');
+
+  // Determine the business code from the business name
+  const businessCode = Object.keys(BUSINESS_CODE_MAP).find(code => BUSINESS_CODE_MAP[code] === businessName);
+
+  // Fetch all targets for a business code
   const fetchTargets = async () => {
-    if (!businessName?.trim()) {
+    if (!businessCode?.trim()) {
       setTargets([]);
       return;
     }
@@ -20,7 +34,7 @@ const useTargets = (businessName) => {
 
     try {
       const response = await axios.get(
-        `${API_URL}/api/target/list-targets-with-status?business_name=${encodeURIComponent(businessName)}`,
+        `${API_URL}/api/target/list-targets-with-status?business_name=${encodeURIComponent(businessCode)}`,
         {
           withCredentials: true, // ✅ Send cookies for auth/session
         }
@@ -37,10 +51,10 @@ const useTargets = (businessName) => {
   };
 
   useEffect(() => {
-    if (businessName) {
+    if (businessCode) {
       fetchTargets();
     }
-  }, [businessName]);
+  }, [businessCode]);
 
   // Update an existing target (status or value)
   const updateTarget = async ({ Business_Name, Target_Column, Target_Key, Start_Date, status, Target_Value }) => {

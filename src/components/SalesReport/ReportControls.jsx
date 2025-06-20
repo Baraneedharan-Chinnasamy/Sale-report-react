@@ -19,8 +19,6 @@ const ReportControls = ({
   setCompareStartDate,
   compareEndDate,
   setCompareEndDate,
-  business,
-  setBusiness,
   fetchData,
   exportMainDataToCSV,
   rowData,
@@ -34,10 +32,9 @@ const ReportControls = ({
   const [endWeekYear, setEndWeekYear] = useState(new Date().getFullYear());
   const [startMonth, setStartMonth] = useState(new Date().getMonth());
   const [endMonth, setEndMonth] = useState(new Date().getMonth());
-  const [availableBusinessCodes, setAvailableBusinessCodes] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const { exportToGoogleSheet, load, successMessage, error } = useExportToSheet();
-
+  const businessName = localStorage.getItem('selectedBusiness');
   const BUSINESS_CODE_MAP = {
     "ZNG45F8J27LKMNQ": "zing",
     "PRT9X2C6YBMLV0F": "prathiksham",
@@ -45,18 +42,21 @@ const ReportControls = ({
     "ADBXOUERJVK038L": "adoreaboo",
     "Authentication": "task_db"
   };
-
+ const businessCode = Object.keys(BUSINESS_CODE_MAP).find(code => BUSINESS_CODE_MAP[code] === businessName);
   // Google Sheets mapping - same as LaunchControl
   const BRAND_SHEET_MAP = {
-    "PRT9X2C6YBMLV0F": "https://docs.google.com/spreadsheets/d/1q5CAMOxVZnFAowxq9w0bbuX9bEPtwJOa9ERA3wCOReQ/edit?usp=sharing",
-    "BEE7W5ND34XQZRM": "https://docs.google.com/spreadsheets/d/1fyzL0TPVWSvQ71-N14AIav9e0qCAqGRu47dhUjA2R44/edit?usp=sharing",
-    "ADBXOUERJVK038L": "https://docs.google.com/spreadsheets/d/1AmFyKI_XMIrSsxyVk11fEgwa8RJMcBwYSKWuQvHh-eU/edit?usp=sharing",
-    "ZNG45F8J27LKMNQ": "https://docs.google.com/spreadsheets/d/15Y79kB1STCwCTNJT6dcK-weqazbqQeptXzXcDgJykT8/edit?usp=sharing"
+    "prathiksham": "https://docs.google.com/spreadsheets/d/1q5CAMOxVZnFAowxq9w0bbuX9bEPtwJOa9ERA3wCOReQ/edit?usp=sharing",
+    "beelittle": "https://docs.google.com/spreadsheets/d/1fyzL0TPVWSvQ71-N14AIav9e0qCAqGRu47dhUjA2R44/edit?usp=sharing",
+    "adoreaboo": "https://docs.google.com/spreadsheets/d/1AmFyKI_XMIrSsxyVk11fEgwa8RJMcBwYSKWuQvHh-eU/edit?usp=sharing",
+    "zing": "https://docs.google.com/spreadsheets/d/15Y79kB1STCwCTNJT6dcK-weqazbqQeptXzXcDgJykT8/edit?usp=sharing"
   };
+
+  // Get current business code from localStorage
+  const business = localStorage.getItem('selectedBusiness');
 
   // Get current Google Sheets link based on selected business
   const currentGoogleSheetLink = useMemo(() => {
-    return business ? BRAND_SHEET_MAP[business] : null;
+    return businessCode ? BRAND_SHEET_MAP[business] : null;
   }, [business]);
 
   // Get current business name for display
@@ -64,53 +64,22 @@ const ReportControls = ({
     return business ? BUSINESS_CODE_MAP[business] : '';
   }, [business]);
 
-  // Load available business codes from localStorage on component mount
+  // Check if the user is admin and adjust the UI accordingly
   useEffect(() => {
-    const loadAvailableBusinessCodes = () => {
+    const loadUserPermissions = () => {
       try {
         const userData = localStorage.getItem('user');
         if (userData) {
           const user = JSON.parse(userData);
-          const reportrixPermissions = user.permissions?.reportrix || {};
-          
-          // Check if user is admin
           setIsAdmin(user.permissions?.admin === true);
-          
-          const availableCodes = [];
-          
-          // Check each brand in reportrix permissions
-          Object.keys(reportrixPermissions).forEach(brandName => {
-            if (reportrixPermissions[brandName] === true) {
-              // Find the corresponding business code for this brand
-              const businessCode = Object.keys(BUSINESS_CODE_MAP).find(
-                code => BUSINESS_CODE_MAP[code] === brandName
-              );
-              if (businessCode) {
-                availableCodes.push({
-                  code: businessCode,
-                  brandName: brandName
-                  
-                });
-              }
-            }
-          });
-          
-          setAvailableBusinessCodes(availableCodes);
-          
-          // If no business is selected and there are available codes, select the first one
-          if (!business && availableCodes.length > 0) {
-            setBusiness(availableCodes[0].code);
-          }
         }
       } catch (error) {
-        console.error('Error loading business codes from localStorage:', error);
-        setAvailableBusinessCodes([]);
+        console.error('Error loading user data from localStorage:', error);
         setIsAdmin(false);
       }
     };
-
-    loadAvailableBusinessCodes();
-  }, [business, setBusiness]);
+    loadUserPermissions();
+  }, []);
 
   // Local date formatting to avoid timezone issues
   const formatDate = (date) => {
@@ -351,21 +320,6 @@ const ReportControls = ({
               </div>
             </>
           )}
-
-          <div style={styles.inputGroup}>
-            <label className={formStyles.label}>Business</label>
-            <select
-              value={business}
-              onChange={(e) => setBusiness(e.target.value)}
-              className={formStyles.select}
-            >
-              {availableBusinessCodes.map((businessItem) => (
-                <option key={businessItem.code} value={businessItem.code}>
-                  {businessItem.brandName}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         <div style={styles.buttonRow}>
@@ -424,25 +378,29 @@ const ReportControls = ({
             </button>
 
             <div style={styles.exportSheetContainer}>
-              <button
-                onClick={() => exportToGoogleSheet(business,"Daily Sales", rowData)}
-                disabled={!rowData || rowData.length === 0 || !business}
-                className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
-              >
-                📤 Export to Google Sheet
-              </button>
-              {currentGoogleSheetLink && (
-                <a
-                  href={currentGoogleSheetLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={styles.sheetIconLink}
-                  title={`Open Google Sheet for ${currentBusinessName}`}
-                >
-                  <GoogleSheetsIcon />
-                </a>
-              )}
-            </div>
+  <button
+    onClick={() => exportToGoogleSheet(businessCode, "Daily Sales", rowData)}
+    disabled={!rowData || rowData.length === 0 || !business}
+    className={`${buttonStyles.button} ${(!rowData || rowData.length === 0 || !business) ? buttonStyles.disabled : ''}`}
+  >
+    📤 Export to Google Sheet
+  </button>
+  
+  {currentGoogleSheetLink ? (
+    <a
+      href={currentGoogleSheetLink}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={styles.sheetIconLink}
+      title={`Open Google Sheet for ${currentBusinessName}`}
+    >
+      <GoogleSheetsIcon />
+    </a>
+  ) : (
+    <GoogleSheetsIcon /> // Always show the icon if there is a link
+  )}
+</div>
+
           </div>
         </div>
       </div>
@@ -464,14 +422,6 @@ const styles = {
     minWidth: '160px',
     flex: 1,
   },
-  monthSelector: {
-    display: 'flex',
-    gap: '4px',
-  },
-  weekSelector: {
-    display: 'flex',
-    gap: '4px',
-  },
   buttonRow: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -491,29 +441,6 @@ const styles = {
     gap: '8px',
     flexWrap: 'wrap',
     marginLeft: 'auto',
-  },
-  // New styles for Google Sheets functionality
-  exportSheetContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px', // Space between button and icon
-  },
-  sheetIconLink: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '32px',
-    height: '32px',
-    borderRadius: '6px',
-    backgroundColor: '#f8f9fa',
-    border: '1px solid #e1e5e9',
-    textDecoration: 'none',
-    transition: 'all 0.2s ease',
-    cursor: 'pointer',
-    '&:hover': {
-      backgroundColor: '#e9ecef',
-      borderColor: '#0F9D58',
-    },
   },
 };
 

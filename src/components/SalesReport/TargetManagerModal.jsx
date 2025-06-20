@@ -3,11 +3,9 @@ import Select from 'react-select';
 import { AsyncPaginate } from 'react-select-async-paginate';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import useTargets from './hooks/useTargets';
-import useFilterManagement from './hooks/useFilterManagement';
 
 const TargetManagerModal = ({ isOpen, onClose, businessName }) => {
   const { targets, loading, error, updateTarget, addTargets, refetch } = useTargets(businessName);
-  const { fetchAvailableFields, availableFields, fetchFieldValues } = useFilterManagement(businessName);
 
   const [editingValues, setEditingValues] = useState({});
   const [editingIndex, setEditingIndex] = useState(null);
@@ -24,18 +22,18 @@ const TargetManagerModal = ({ isOpen, onClose, businessName }) => {
 
   useEffect(() => {
     if (isOpen && businessName) {
-      fetchAvailableFields();
+      // TODO: Refactor filter logic to use local state and useFieldValues, similar to LaunchSummary.jsx.
     }
-  }, [isOpen, businessName, fetchAvailableFields]);
+  }, [isOpen, businessName]);
 
   useEffect(() => {
-    if (availableFields.length) {
-      setColumnOptions(availableFields.map(field => ({
+    if (columnOptions.length) {
+      setColumnOptions(columnOptions.map(field => ({
         value: field,
         label: field.replace(/_/g, ' ')
       })));
     }
-  }, [availableFields]);
+  }, [columnOptions]);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -159,10 +157,10 @@ const TargetManagerModal = ({ isOpen, onClose, businessName }) => {
                   key={newTarget.Target_Column}
                   value={newTarget.Target_Key ? { label: newTarget.Target_Key, value: newTarget.Target_Key } : null}
                   loadOptions={async (inputValue, loadedOptions, { page = 1 }) => {
-                    const { values, hasMore } = await fetchFieldValues(newTarget.Target_Column, inputValue, page);
+                    // TODO: Refactor filter logic to use local state and useFieldValues, similar to LaunchSummary.jsx.
                     return {
-                      options: values.map(v => ({ label: v, value: v })),
-                      hasMore,
+                      options: [],
+                      hasMore: false,
                       additional: { page: page + 1 }
                     };
                   }}
